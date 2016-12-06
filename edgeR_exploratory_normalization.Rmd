@@ -1,0 +1,126 @@
+---
+title: "Normalization of atac-seq data (without filtering)"
+output: html_notebook
+---
+
+This initial normalization of atac-seq data doesn't have any filtering. Its purpose is to explore the behaviour of the counts and set a cutoff value for posterior filtering. I'll use edgeR, using TMM normalization, as the distribution of counts per peak (which will be treated as counts per gene, just like in rna-seq data) is negative binomial (variance much larger than the mean). edgeR also manages better the presence of zero counts. 
+
+```{r setup, include=FALSE, warning=FALSE}
+library(edgeR)
+library(knitr)   # for kable tables
+
+currentDate <- Sys.Date() # to save date in name of output files
+
+counts <- read.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/counts_all_samples_peaks_renamed.txt",header = T,check.names=F) # bed file with start and end of peaks
+
+
+sample=factor(c("sbad2.1","sbad3.1","neo1.1"),levels=c("sbad2.1","sbad3.1","neo1.1"))   # data comes from three donors
+
+stage=factor(c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC"),levels=c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC")) # 8 stages
+
+rownames(counts)=counts[,1]
+counts=counts[,c(7:ncol(counts))] # getting just the counts, peaks are row names
+
+```
+Conservative counts initially has `r nrow(counts)` peaks, and looks like this: 
+
+
+```{r table, include=FALSE, warning=FALSE}
+
+
+kable(counts[1:2,1:6])
+
+
+```
+
+Now I will create the DGE object:
+
+
+```{r DGE, include=FALSE, warning=FALSE}
+
+
+group <- rep(stage,each=3)    #group by stages 
+
+
+dge <- DGEList(counts=counts,group=group) #create dge object, TMM normalization by default
+
+
+# save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
+```
+
+Calculate the normalization factors using TMM:
+```{r normalization, include=FALSE, warning=FALSE}
+
+dge <- calcNormFactors(dge) # Calculating normalization factors
+
+CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
+
+CPMs=as.data.frame(CPMs)
+```
+
+```{r plot_distribution,echo=FALSE, warning=FALSE,message=FALSE}
+
+library(ggplot2)
+library(grid)
+library(gridExtra)
+
+appended_columns=unlist(CPMs,use.names = F)
+all_sample_counts_mean=mean(appended_columns)   # calculate mean counts for all samples
+all_sample_counts_variance=var(appended_columns) # calculate variance for counts for all samples
+
+unique_values_counts=aggregate(data.frame(count = appended_columns), list(value = appended_columns), length)
+
+colnames(unique_values_counts)=c("cpms_in_peak","number")
+
+# sum(unique_values_counts$number)  # total times a counts_in_peak values is repeated 
+# 5394696, same as before
+
+# frequency for each unique value of counts per peak:
+
+unique_values_counts$frequency=unique_values_counts$number/sum(unique_values_counts$number)
+
+# sum(unique_values_counts$frequency) # sum of all frequencies gives 1 
+
+# p1 <- ggplot(unique_values_counts, aes(x=cpms_in_peak, y=frequency))
+# p1 <- p1 + geom_point() + scale_x_continuous(limits = c(0, 100))
+# plot(p1)
+# 
+# 
+# p2 <- ggplot(unique_values_counts, aes(x=cpms_in_peak, y=number))
+# p2 <-p2 + geom_point() + scale_x_continuous(limits = c(0, 100))
+# plot(p2)
+# 
+# p3 <- ggplot(unique_values_counts, aes(x=cpms_in_peak, y=frequency))
+# p3 <-p3 + geom_point() + scale_x_continuous(limits=c(1,10),breaks=c(1:10)) + scale_y_continuous(limits = c(0, 0.0055))
+# plot(p3)
+
+library(reshape)
+library(plyr)
+library(geneplotter)
+mdata <- melt(CPMs) 
+
+mdata_aggregated=count(mdata, c("variable", "value"))
+# sum(mdata_aggregated[which(mdata_aggregated$value==0.0000),3])  # sum of all 0s in all samples is equal to the total sum of 0s in unique_values_counts
+
+colnames(mdata_aggregated)=c("samples","normalized_CPMs_per_peak","number")
+# fix 
+#mdata_aggregated$frequency_per_sample=mdata_aggregated$number/sum(mdata_aggregated$number[which(mdata_aggregated)])
+
+
+ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
+  geom_point() +  scale_x_continuous(limits=c(0,10),breaks=c(1:10))
+
+ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
+  geom_point() +  scale_x_continuous(limits=c(0,1000))
+
+multidensity( CPMs, xlab="counts", xlim=c(0, 15))
+
+
+# p4 <- ggplot(unique_values_counts, aes(x=cpms_in_peak, y=number))
+# p4 <-p4 + geom_point() + scale_x_continuous(limits=c(1,10), breaks=c(1:10)) + scale_y_continuous(limits = c(0, 30000))
+# plot(p4)
+```
+
+The mean counts for all samples is `r round(all_sample_counts_mean,digits=2)`.
+The variance of counts for all samples is `r round(all_sample_counts_variance,digits=2)`.
+

@@ -1,0 +1,192 @@
+---
+title: "Exploratory QC"
+output: html_notebook
+---
+
+Checking using CPM>1 in all three replicates for at least one stage. Let's see how many I've got left after filtering.
+
+```{r setup, include=FALSE, warning=FALSE}
+library(edgeR)
+library(knitr)   # for kable tables
+
+currentDate <- Sys.Date() # to save date in name of output files
+
+load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz",verbose=TRUE)  #loading the dge object for conservative counts
+
+
+
+```
+
+Conservative counts initially has `r nrow(dge)` peaks, and looks like this: 
+
+
+```{r table, warning=FALSE}
+
+
+kable(dge$counts[1:2,1:6])
+
+
+```
+
+Now I want to keep in my count object peaks with at least 1 cpm in at least one stage.
+
+```{r first_trim, warning=FALSE}
+
+old_peaks=dim(dge)[1]# save how many peaks there are initially
+keep <- rowSums(cpm(dge,normalized.lib.sizes = TRUE)>1) >= 3   # getting peaks with at least 1 cpm in at least one stage (3 rep per stage).
+dge <- dge[keep, , keep.lib.sizes=FALSE]  # adjusting the library size
+
+dge <- calcNormFactors(dge)# recalculating normalization factors after altering library sizes
+# if counts are distributed roughly equally across all samples, it shouldn0t change much
+
+percent=(dim(dge)[1]/old_peaks)*100 # percentage from original pekas that we conserve
+
+
+
+```
+
+Conservative counts now has `r nrow(dge)` peaks (`r percent`% of original amount). Checking that I have removed all peaks in which at least one stage doesn't have 1 CPM for ALL 3 samples (I wasn't really checking that the cpm>1 were in the same stage).
+
+```{r second_trim, warning=FALSE}
+
+# go through the table 3 by 3
+# if there are more than 2 values in three columns above 0, go to next row.
+# if not, go to next 3
+# if gets to end of loop and not found the values, get that row. After loop, subset matrix excluding those rows
+
+ cpm_data=cpm(dge, normalized.lib.sizes=TRUE)
+
+trim_by_stage=function(dge){
+  data=cpm(dge, normalized.lib.sizes=TRUE)
+   data[data<1]=0
+  data[data>1]=1 # convert to table where 0=0 and 1 equals any value above n
+  c=c() # initiate vector of numbers, to save rows to take out of matrix
+
+  for (r in 1:nrow(data)){
+   for (i in seq(1,24,3)){   # loop through stages 3 by 3 (to jump over samples of same stage)
+
+     if (sum(data[r,c(i,i+1,i+2)]) > 2) {
+
+        break
+      }
+      if (i==22){
+
+        c=c(c,r)  # if it gets to the end and there are no valid values, append to vector
+      }
+
+
+   }
+
+  }
+
+rm(data)
+return(c)
+
+}
+
+
+c=trim_by_stage(dge)
+fail=100*(length(c)/nrow(dge$counts))
+genes_fail=length(c)
+ditch=dge$counts[c,] # table to throw away
+
+keep=!(rownames(dge$counts) %in% rownames(ditch))
+
+dge <- dge[keep, , keep.lib.sizes=FALSE] # counts now has 17892 genes
+
+rm(c,keep,ditch)
+
+
+```
+
+After trimming, peak counts has `r nrow(dge)` peaks. It has lost `r genes_fail` genes (`r fail`% from previous total). We keep `r (nrow(dge)/old_peaks)*100`% of the original peaks.
+
+Plot the distribution of CPM trimming and percentage of peaks that remain from the original amount (from CPM 1 to 7 or so).
+
+```{r full trimming function, warning=FALSE}
+load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz",verbose=TRUE)  #loading the dge object for conservative counts
+
+old_peaks=dim(dge)[1]# save how many peaks there are initially
+
+trim_by_stage_and_cpm=function(dge,CPM=1,old_peaks=dim(dge)[1]){
+keep <- rowSums(cpm(dge,normalized.lib.sizes = TRUE)>CPM) >= 3   # getting peaks with at least n cpm in at least one stage (3 rep per stage).
+dge <- dge[keep, , keep.lib.sizes=FALSE]  # adjusting the library size
+
+dge <- calcNormFactors(dge)# recalculating normalization factors after altering library sizes
+# if counts are distributed roughly equally across all samples, it shouldn0t change much
+
+# go through the table 3 by 3
+# if there are more than 2 values in three columns above 0, go to next row.
+# if not, go to next 3
+# if gets to end of loop and not found the values, get that row. After loop, subset matrix excluding those rows
+
+ cpm_data=cpm(dge, normalized.lib.sizes=TRUE)
+
+trim_by_stage=function(dge){
+  data=cpm(dge, normalized.lib.sizes=TRUE)
+  data[data<CPM]=0
+  data[data>CPM]=1 # convert to table where 0=0 and 1 equals any value above n
+  
+  c=c() # initiate vector of numbers, to save rows to take out of matrix
+
+  for (r in 1:nrow(data)){
+   for (i in seq(1,24,3)){   # loop through stages 3 by 3 (to jump over samples of same stage)
+
+     if (sum(data[r,c(i,i+1,i+2)]) > 2) {
+
+        break
+      }
+      if (i==22){
+
+        c=c(c,r)  # if it gets to the end and there are no valid values, append to vector
+      }
+
+
+   }
+
+  }
+
+rm(data)
+return(c)
+
+}
+
+c=trim_by_stage(dge)  # calling previous function
+
+fail=100*(length(c)/nrow(dge$counts))
+genes_fail=length(c)
+ditch=dge$counts[c,] # table to throw away
+
+keep=!(rownames(dge$counts) %in% rownames(ditch))
+
+dge <- dge[keep, , keep.lib.sizes=FALSE] # counts now has 17892 genes
+
+rm(c,keep,ditch)
+
+peaks_remain=((nrow(dge)/old_peaks)*100)
+
+return(peaks_remain)
+}
+
+# call function for all CPMs
+peaks_remain=c()
+for(i in 1:7){
+  peaks_remain[i]=trim_by_stage_and_cpm(dge,CPM=i,old_peaks=dim(dge)[1])
+}
+
+
+df=data.frame(CPM = c(1:7),peaks_remain=peaks_remain)
+
+library(ggplot2)
+
+p <- ggplot(df,aes(y=peaks_remain, x=CPM)) +
+  geom_line() + xlab("CPM cutoff") + ylab("% of peaks that remain") + 
+  scale_x_continuous(limits=c(1,7),breaks=c(1:7)) + ylim(c(0,100)) 
+  
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/CPM_cutoff_peaks_remaining",currentDate,".jpg",
+             sep=""),p,width=4,height=4,units="in",dpi=300)
+
+
+```
+
+
