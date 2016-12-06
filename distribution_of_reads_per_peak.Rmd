@@ -87,32 +87,10 @@ names <- read.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/ata
 
 names$letter_number <- paste(names$letter,names$number,sep="")
 
-new_counts=counts[7:ncol(new_counts)]
+new_counts=counts[7:ncol(counts)]
 
 colnames(new_counts)=paste(names$stage,names$sample,sep="-")
 
-
-#reorder columns by stages
-ordered_stages=c("iPSC", "DE", "PGT", "PFG", "PE", "EP","ENstage6", "BLC")
-
-order_by_stages=function(counts,stage.=ordered_stages){
-nc=counts[ , grepl( "iPSC" , names( counts) ) ]  #takes columns whose name matches x
-
-#Do the same for the other stages
-
-for (s in stage.[-1])  {         
-
-  i= counts[ , grepl( s , names( counts ) ) ]
-  nc=cbind(nc,i)
-}
-
-return(nc)
-}
-
-
-new_counts=order_by_stages(new_counts)
-
-new_counts=cbind(counts[1:6],new_counts)
 
 write.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/counts_all_samples_peaks_renamed.txt",new_counts,col.names = T,row.names = F,sep="\t")
 
