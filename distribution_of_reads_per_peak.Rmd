@@ -1,0 +1,122 @@
+---
+title: "Calculating distribution of atac-seq counts per peak"
+output: html_notebook
+---
+
+Having used the merged peak file and featureCounts to get a matrix of the fragments that overlap each peak (taking all peaks and samples into account, that is, not caring if a peak is not present in a sample), I want to get the distribution of fragments (paired end reads) per peak. The y axis will be the frequency, and the x axis will be numerical and discrete, and ranging to 0 to the maximum counts.
+
+```{r setup,include=FALSE}
+
+currentDate <- Sys.Date() # to save date in name of output files
+
+
+counts <- read.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/plotCoverage/counts_all_samples_peaks.txt",header = T) # bed file with start and end of peaks
+
+samples=c("A","B","C","D")
+samples_2=rep(samples,each=6)
+stage=as.character(c(1:6))
+stage_2=rep(stage,4)
+
+colnames(counts)[7:ncol(counts)]=paste(samples_2,stage_2,sep="")  # rename columns for samples and stages
+
+```
+
+```{r summarise, include=FALSE}
+mean_peak_length=mean(counts$Length)  # calculate mean peak length
+
+each_sample_counts_mean=colMeans(counts[7:ncol(counts)]) # calculate mean counts per sample
+appended_columns=unlist(counts[7:ncol(counts)],use.names = F)
+all_sample_counts_mean=mean(appended_columns)   # calculate mean counts for all samples
+all_sample_counts_variance=var(appended_columns) # calculate variance for counts for all samples
+
+```
+The mean peak length is `r round(mean_peak_length,digits=2)`.
+The mean counts per sample are `r round(each_sample_counts_mean,digits=2)`.
+The mean counts for all samples is `r round(all_sample_counts_mean,digits=2)`.
+The variance of counts for all samples is `r round(all_sample_counts_variance,digits=2)`.
+
+```{r plot,echo=FALSE,message=FALSE,warning=FALSE}
+
+library(ggplot2)
+library(grid)
+library(gridExtra)
+
+unique_values_counts=aggregate(data.frame(count = appended_columns), list(value = appended_columns), length)
+
+colnames(unique_values_counts)=c("counts_in_peak","number")
+
+sum(unique_values_counts$number)  # total times a counts_in_peak values is repeated 
+# 5394696
+
+# frequency for each unique value of counts per peak:
+
+unique_values_counts$frequency=unique_values_counts$number/sum(unique_values_counts$number)
+
+sum(unique_values_counts$frequency) # sum of all frequencies gives 1 
+
+p1 <- ggplot(unique_values_counts, aes(x=counts_in_peak, y=frequency))
+p1 <- p1 + geom_point() + scale_x_continuous(limits = c(0, 100))
+plot(p1)
+
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distribution_peak_counts_frequency_first_100",currentDate,".jpg",
+             sep=""),p1,width=8,height=8,units="in",dpi=300)
+
+p2 <- ggplot(unique_values_counts, aes(x=counts_in_peak, y=number))
+p2 <-p2 + geom_point() + scale_x_continuous(limits = c(0, 100))
+plot(p2)
+
+p3 <- ggplot(unique_values_counts, aes(x=counts_in_peak, y=frequency))
+p3 <-p3 + geom_point() + scale_x_continuous(limits=c(101,23150)) + scale_y_continuous(limits = c(0, 0.00060))
+plot(p3)
+
+p4 <- ggplot(unique_values_counts, aes(x=counts_in_peak, y=number))
+p4 <-p4 + geom_point() + scale_x_continuous(limits=c(101,23150)) + scale_y_continuous(limits = c(0, 3400))
+plot(p4)
+
+distribution_peak_counts=grid.arrange(p1, p2, p3, p4, ncol=4, nrow = 2, layout_matrix = rbind(c(1,1,2,2), c(3,3,4,4)),widths = c(2,1,1,2), heights = c(3,3))
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distribution_peak_counts",currentDate,".jpg",sep=""),distribution_peak_counts,width=8,height=8,units="in",dpi=300)
+
+```
+
+```{r save,echo=FALSE,message=FALSE,warning=FALSE}
+
+
+#read in table of names
+
+names <- read.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/names_samples.txt",header = T)
+
+names$letter_number <- paste(names$letter,names$number,sep="")
+
+new_counts=counts[7:ncol(new_counts)]
+
+colnames(new_counts)=paste(names$stage,names$sample,sep="-")
+
+
+#reorder columns by stages
+ordered_stages=c("iPSC", "DE", "PGT", "PFG", "PE", "EP","ENstage6", "BLC")
+
+order_by_stages=function(counts,stage.=ordered_stages){
+nc=counts[ , grepl( "iPSC" , names( counts) ) ]  #takes columns whose name matches x
+
+#Do the same for the other stages
+
+for (s in stage.[-1])  {         
+
+  i= counts[ , grepl( s , names( counts ) ) ]
+  nc=cbind(nc,i)
+}
+
+return(nc)
+}
+
+
+new_counts=order_by_stages(new_counts)
+
+new_counts=cbind(counts[1:6],new_counts)
+
+write.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/counts_all_samples_peaks_renamed.txt",new_counts,col.names = T,row.names = F,sep="\t")
+
+```
+
+
+
