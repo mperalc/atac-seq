@@ -10,6 +10,7 @@
 
 library(edgeR)
 library(knitr)   # for kable tables
+library(ggplot2)
 
 currentDate <- Sys.Date() # to save date in name of output files
 
@@ -25,54 +26,54 @@ dge <- calcNormFactors(dge) # Calculating normalization factors
 
 # plot PCA before filtering  ######################
 
-samples <- c(rep(donors,8))   
-samples=as.factor(samples)
+samples <- rep(sample,8)   
+
 stages <-rep(stage,each=3) 
-stages <- as.factor(stages)
 
-# plot PCA for un/normalized counts
-par(mfrow=c(1,1))
 
-# looks better with scaling scaling
-plot_pca=function(x,s=samples,st=stages){
-  pca1<-prcomp(t(x), retx=TRUE, scale. = F)
-
-  plot(pca1, type = "l") #variance vs first 10 components
-  summary(pca1)          #importance of each component (important line is "proportion of variance")
-
-  percentVar <- (pca1$sdev)^2 / sum(pca1$sdev^2)
-  percentVar <- round(100 * percentVar)
-  pcs <- as.data.frame(pca1$x)
-  pcs <- cbind(pcs,sample=samples,stage=stages)
-  pcs$stage <- ordered(pcs$stage, levels = stage)
-
-  p <- ggplot(pcs, aes(PC1, PC2, colour=stage, shape=samples)) +
-    geom_point(size = 3) + xlab (paste0( "PC1:" ,percentVar[ 1 ],"% variance")) +
-    ylab (paste0( "PC2: ",percentVar[ 2 ],"% variance" ))
-  p <- p + theme(   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                    panel.background = element_blank(),
-                    panel.border = element_rect(fill = NA, colour = "black"),
-                    legend.key = element_blank(),# legend.position = c(0.5,0.5),
-                    axis.title.y = element_text(face="bold", angle=90, size=12, vjust=0.2),
-                    axis.title.x = element_text(face="bold", size=12, vjust=0),
-                    axis.text.x = element_text(face="bold", colour = "black", angle=90, size=12, vjust=0.2, hjust =1 ),
-                    axis.text.y = element_text(face="bold", colour = "black"),
-                    axis.ticks = element_line(colour = "black"),
-                    axis.line = element_line(colour = "black"))
-  # ggsave("/Users/Marta/Documents/WTCHG/DPhil/Plots/conservative_counts/Diff_v2_PCA.tiff",p,compression="lzw")
-  return(p)
-}
-
-p=plot_pca(dge$counts)
-p
-ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_unfiltered_counts_atac-seq",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
-
-CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
-
-CPMs=as.data.frame(CPMs)
-p=plot_pca(CPMs)
-p
-ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_unfiltered_CPMs_atac-seq",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
+##plot PCA for un/normalized counts
+# par(mfrow=c(1,1))
+# 
+# # looks better with scaling scaling
+# plot_pca=function(x,s=samples,st=stages){
+#   pca1<-prcomp(t(x), retx=TRUE, scale. = F)
+# 
+#   plot(pca1, type = "l") #variance vs first 10 components
+#   summary(pca1)          #importance of each component (important line is "proportion of variance")
+# 
+#   percentVar <- (pca1$sdev)^2 / sum(pca1$sdev^2)
+#   percentVar <- round(100 * percentVar)
+#   pcs <- as.data.frame(pca1$x)
+#   pcs <- cbind(pcs,sample=samples,stage=stages)
+#   pcs$stage <- ordered(pcs$stage, levels = stage)
+# 
+#   p <- ggplot(pcs, aes(PC1, PC2, colour=stage, shape=samples)) +
+#     geom_point(size = 3) + xlab (paste0( "PC1:" ,percentVar[ 1 ],"% variance")) +
+#     ylab (paste0( "PC2: ",percentVar[ 2 ],"% variance" ))
+#   p <- p + theme(   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+#                     panel.background = element_blank(),
+#                     panel.border = element_rect(fill = NA, colour = "black"),
+#                     legend.key = element_blank(),# legend.position = c(0.5,0.5),
+#                     axis.title.y = element_text(face="bold", angle=90, size=12, vjust=0.2),
+#                     axis.title.x = element_text(face="bold", size=12, vjust=0),
+#                     axis.text.x = element_text(face="bold", colour = "black", angle=90, size=12, vjust=0.2, hjust =1 ),
+#                     axis.text.y = element_text(face="bold", colour = "black"),
+#                     axis.ticks = element_line(colour = "black"),
+#                     axis.line = element_line(colour = "black"))
+#   # ggsave("/Users/Marta/Documents/WTCHG/DPhil/Plots/conservative_counts/Diff_v2_PCA.tiff",p,compression="lzw")
+#   return(p)
+# }
+# 
+# p=plot_pca(dge$counts)
+# p
+# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_unfiltered_counts_atac-seq",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
+# 
+# CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
+# 
+# CPMs=as.data.frame(CPMs)
+# p=plot_pca(CPMs)
+# p
+# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_unfiltered_CPMs_atac-seq",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
 
 
 
@@ -149,53 +150,66 @@ dge <- calcNormFactors(dge)# recalculating normalization factors after altering 
 nrow(dge)/old_peaks #proportion of peaks that remain
 
 # save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_trimmed.xz" , compress="xz")   # saving the dge object
-
-# plot PCA for un/normalized counts, after filtering
-par(mfrow=c(1,1))
-
-# looks better with scaling scaling
-plot_pca=function(x,s=samples,st=stages){
-  pca1<-prcomp(t(x), retx=TRUE, scale. = TRUE)
-
-  plot(pca1, type = "l") #variance vs first 10 components
-  summary(pca1)          #importance of each component (important line is "proportion of variance")
-
-  percentVar <- (pca1$sdev)^2 / sum(pca1$sdev^2)
-  percentVar <- round(100 * percentVar)
-  pcs <- as.data.frame(pca1$x)
-  pcs <- cbind(pcs,sample=samples,stage=stages)
-  pcs$stage <- ordered(pcs$stage, levels = stage)
-
-  p <- ggplot(pcs, aes(PC1, PC2, colour=stage, shape=samples)) +
-    geom_point(size = 3) + xlab (paste0( "PC1:" ,percentVar[ 1 ],"% variance")) +
-    ylab (paste0( "PC2: ",percentVar[ 2 ],"% variance" ))
-  p <- p + theme(   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-                    panel.background = element_blank(),
-                    panel.border = element_rect(fill = NA, colour = "black"),
-                    legend.key = element_blank(),# legend.position = c(0.5,0.5),
-                    axis.title.y = element_text(face="bold", angle=90, size=12, vjust=0.2),
-                    axis.title.x = element_text(face="bold", size=12, vjust=0),
-                    axis.text.x = element_text(face="bold", colour = "black", angle=90, size=12, vjust=0.2, hjust =1 ),
-                    axis.text.y = element_text(face="bold", colour = "black"),
-                    axis.ticks = element_line(colour = "black"),
-                    axis.line = element_line(colour = "black"))
-  # ggsave("/Users/Marta/Documents/WTCHG/DPhil/Plots/conservative_counts/Diff_v2_PCA.tiff",p,compression="lzw")
-  return(p)
-}
-
-p=plot_pca(dge$counts)
-p
-ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_filtered_counts_atac-seq_withscaling",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
-
-CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
-
-CPMs=as.data.frame(CPMs)
-p=plot_pca(CPMs)
-p
-ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_filtered_CPMs_atac-seq_withscaling",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
+# 
+# # plot PCA for un/normalized counts, after filtering
+# par(mfrow=c(1,1))
+# 
+# # looks better with scaling scaling
+# plot_pca=function(x,s=samples,st=stages){
+#   pca1<-prcomp(t(x), retx=TRUE, scale. = TRUE)
+# 
+#   plot(pca1, type = "l") #variance vs first 10 components
+#   summary(pca1)          #importance of each component (important line is "proportion of variance")
+# 
+#   percentVar <- (pca1$sdev)^2 / sum(pca1$sdev^2)
+#   percentVar <- round(100 * percentVar)
+#   pcs <- as.data.frame(pca1$x)
+#   pcs <- cbind(pcs,sample=samples,stage=stages)
+#   pcs$stage <- ordered(pcs$stage, levels = stage)
+# 
+#   p <- ggplot(pcs, aes(PC1, PC2, colour=stage, shape=samples)) +
+#     geom_point(size = 3) + xlab (paste0( "PC1:" ,percentVar[ 1 ],"% variance")) +
+#     ylab (paste0( "PC2: ",percentVar[ 2 ],"% variance" ))
+#   p <- p + theme(   panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+#                     panel.background = element_blank(),
+#                     panel.border = element_rect(fill = NA, colour = "black"),
+#                     legend.key = element_blank(),# legend.position = c(0.5,0.5),
+#                     axis.title.y = element_text(face="bold", angle=90, size=12, vjust=0.2),
+#                     axis.title.x = element_text(face="bold", size=12, vjust=0),
+#                     axis.text.x = element_text(face="bold", colour = "black", angle=90, size=12, vjust=0.2, hjust =1 ),
+#                     axis.text.y = element_text(face="bold", colour = "black"),
+#                     axis.ticks = element_line(colour = "black"),
+#                     axis.line = element_line(colour = "black"))
+#   # ggsave("/Users/Marta/Documents/WTCHG/DPhil/Plots/conservative_counts/Diff_v2_PCA.tiff",p,compression="lzw")
+#   return(p)
+# }
+# 
+# p=plot_pca(dge$counts)
+# p
+# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_filtered_counts_atac-seq_withscaling",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
+# 
+# CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
+# 
+# CPMs=as.data.frame(CPMs)
+# p=plot_pca(CPMs)
+# p
+# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_filtered_CPMs_atac-seq_withscaling",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
 
 
 #################################### DEA  
+
+library(pheatmap)
+library(RColorBrewer)
+library(org.Hs.eg.db)
+library(limma)
+library(ggbiplot)
+library(ggrepel) # provides geoms for ggplot2 to repel overlapping text labels.
+
+library(ggfortify)
+library(reshape2)  # to modify dataframes for ggplot2
+library(knitr)   #for tables in rmd
+library(pander)  #more tables
+
 
 ################################################ peak stages ###################################
 #create the design matrix
@@ -323,12 +337,12 @@ plot_sdc=function(x){
   colnames(sampleDistMatrix) <- NULL
   colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
   
-  png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distance_matrix_voom_peaks.png", type="cairo",
-      width=7,height=5,units="in",res=200,pointsize = 13)
+  #png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distance_matrix_voom_peaks.png", type="cairo",
+  #    width=7,height=5,units="in",res=200,pointsize = 13)
   
   sdc= pheatmap(sampleDistMatrix, clustering_distance_rows=sampleDists, clustering_distance_cols=sampleDists, col=colors)
   
-  dev.off()
+  # dev.off()
   
   return(sdc)
 }
@@ -345,7 +359,7 @@ print(sdc_voom)
 # tried for different designs: exactly the same
 par(mfrow=c(1,1))
 plot_pca=function(x,s=samples,st=stages){
-  pca1<-prcomp(t(x), retx=TRUE)
+  pca1<-prcomp(t(x), retx=TRUE,scale. = T)
   
   plot(pca1, type = "l") #variance vs first 10 components
   summary(pca1)          #importance of each component (important line is "proportion of variance")
@@ -376,7 +390,7 @@ plot_pca=function(x,s=samples,st=stages){
 p=plot_pca(v2$E)
 p
 
-ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_voom_atac-seq_",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_voom_atac-seq_withscaling_",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
 
 
 
