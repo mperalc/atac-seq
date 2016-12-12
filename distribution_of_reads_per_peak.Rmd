@@ -27,7 +27,19 @@ mean_peak_length=mean(counts$Length)  # calculate mean peak length
 each_sample_counts_mean=colMeans(counts[7:ncol(counts)]) # calculate mean counts per sample
 appended_columns=unlist(counts[7:ncol(counts)],use.names = F)
 all_sample_counts_mean=mean(appended_columns)   # calculate mean counts for all samples
+# also, for each peak:
+each_peak_counts_mean=rowMeans(counts[7:ncol(counts)])
+mean(each_peak_counts_mean)  # gives same result as above
+
 all_sample_counts_variance=var(appended_columns) # calculate variance for counts for all samples
+
+# mode
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+mode= getmode(appended_columns)
 
 ```
 The mean peak length is `r round(mean_peak_length,digits=2)`.

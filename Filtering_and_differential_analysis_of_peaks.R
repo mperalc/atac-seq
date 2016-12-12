@@ -25,6 +25,10 @@ dge <- calcNormFactors(dge) # Calculating normalization factors
 
 # plot PCA before filtering  ######################
 
+samples <- c(rep(donors,8))   
+samples=as.factor(samples)
+stages <-rep(stage,each=3) 
+stages <- as.factor(stages)
 
 # plot PCA for un/normalized counts
 par(mfrow=c(1,1))
@@ -146,7 +150,7 @@ nrow(dge)/old_peaks #proportion of peaks that remain
 
 # save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_trimmed.xz" , compress="xz")   # saving the dge object
 
-plot PCA for un/normalized counts, after filtering
+# plot PCA for un/normalized counts, after filtering
 par(mfrow=c(1,1))
 
 # looks better with scaling scaling
@@ -194,7 +198,16 @@ ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_filtered_CPM
 #################################### DEA  
 
 ################################################ peak stages ###################################
+#create the design matrix
+design1 <- model.matrix(~stages + samples)                    
+kable(design1)
+
+
 # This converts the counts to log-counts per million with associated precision weights. After this, the RNA-seq data can be analyzed as if it was microarray data.
+
+
+v2=voom(dge,design=design1,plot=TRUE)   
+
 
 par(mfrow=c(1,2))
 plot(log2(dge$counts + 1)[,1:2],
