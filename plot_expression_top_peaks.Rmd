@@ -58,7 +58,7 @@ for(i in stage){
 ```
 ```{r plot specific peaks}
 library(reshape2) 
-peak_names=c("peak_chr12_7940122","peak_chr12_7941751","peak_chr12_7951365")
+peak_names=c("peak_chr11_2182321")
 
 
 # calculating CPMs
@@ -101,7 +101,7 @@ head(long)
 
 library(ggplot2)
 
- png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_DE_list_NANOG.png", type="cairo",
+ png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_DE_list_INS.png", type="cairo",
        width=7,height=5,units="in",res=300,pointsize = 9)
   p <- ggplot(data = long, aes(x = stage, y = value,group=sample )) +
     ggtitle("Selected diff. peaks near NANOG") +
