@@ -57,7 +57,7 @@ for(i in stage){
 
 ```
 ```{r plot specific peaks}
-
+library(reshape2) 
 peak_names=c("peak_chr12_7940122","peak_chr12_7941751","peak_chr12_7951365")
 
 
@@ -79,14 +79,14 @@ diff=setdiff(peak_names,rownames(CPMs))           # which ones in the list are n
 plot_long=plot_long
 
 gene_number=nrow(plot_long)   # how many genes to plot
-
+plot_long$peak=rownames(plot_long)
 # melt data for ggplot2
 
 long = melt(plot_long, measure.vars = c(1:24))
 head(long)
 long$variable=as.character(long$variable)
 
-gsub("(ENSG[0-9]+)-*", "\\1", long$variable)
+
 long$stage=gsub("-.*$", "", long$variable)
 long$sample=gsub(".*-", "", long$variable)
 
@@ -99,13 +99,19 @@ long$stage <- factor(long$stage, levels=stage)
 long$sample <- factor(long$sample, levels=sample)
 head(long)
 
+library(ggplot2)
+
  png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_DE_list_NANOG.png", type="cairo",
-       width=5,height=10,units="in",res=300,pointsize = 13)
+       width=7,height=5,units="in",res=300,pointsize = 9)
   p <- ggplot(data = long, aes(x = stage, y = value,group=sample )) +
-    ggtitle("Counts per gene, stage & sample") +
+    ggtitle("Selected diff. peaks near NANOG") +
     xlab ("Differentiation stages") +
-    ylab ("Counts (TPM)") +
-    geom_line(aes(col = sample), size = 1) + facet_wrap(~GeneName,scales="free",nrow=2)
+    ylab ("Peak counts,normalized (CPM)") +
+    geom_line(aes(col = sample), size = 1) + facet_wrap(~peak,scales="free",nrow=2)+
+     theme_light()+
+    theme(panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), 
+          panel.background = element_rect(colour = "black", size=1)) +
+    geom_hline(yintercept=0,linetype="dashed") 
   print(p)
   dev.off()
 
