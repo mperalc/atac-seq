@@ -58,9 +58,13 @@ for(i in stage){
 ```
 ```{r plot specific peaks}
 library(reshape2) 
-peak_names=c("peak_chr11_2182321")
 
+peak_INS=c("peak_chr11_2182321","peak_chr11_2200024")
 
+peak_TCF7L2=c("peak_chr10_114729312","peak_chr10_114760636","peak_chr10_114778381","peak_chr10_114779460","peak_chr10_114877308")
+peak_GCG=c("peak_chr2_162922143","peak_chr2_163029310","peak_chr2_163062530")
+peak_PDX1=c("peak_chr13_28425586","peak_chr13_28485507","peak_chr13_28491889")
+peak_NEUROG3=c("peak_chr10_71314336","peak_chr10_71333097")
 # calculating CPMs
 
 CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
@@ -75,8 +79,7 @@ plot_long=na.omit(plot_long)              # remove NAs, in case there was not a 
 
 diff=setdiff(peak_names,rownames(CPMs))           # which ones in the list are not in the table (probably have a different name)?
 
-#order the columns by stage
-plot_long=plot_long
+
 
 gene_number=nrow(plot_long)   # how many genes to plot
 plot_long$peak=rownames(plot_long)
@@ -101,13 +104,13 @@ head(long)
 
 library(ggplot2)
 
- png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_DE_list_INS.png", type="cairo",
+ png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_DE_list_TCF7L2.png", type="cairo",
        width=7,height=5,units="in",res=300,pointsize = 9)
   p <- ggplot(data = long, aes(x = stage, y = value,group=sample )) +
-    ggtitle("Selected diff. peaks near NANOG") +
+    ggtitle("Selected diff. peaks near TCF7L2") +
     xlab ("Differentiation stages") +
     ylab ("Peak counts,normalized (CPM)") +
-    geom_line(aes(col = sample), size = 1) + facet_wrap(~peak,scales="free",nrow=2)+
+    geom_line(aes(col = sample), size = 1) + facet_wrap(~peak,scales="free",nrow=3)+
      theme_light()+
     theme(panel.grid.minor = element_blank(), panel.grid.major.x = element_blank(), 
           panel.background = element_rect(colour = "black", size=1)) +
