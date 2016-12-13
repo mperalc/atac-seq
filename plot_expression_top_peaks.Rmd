@@ -1,0 +1,169 @@
+---
+title: "Compare DE peak results to CPM "
+output: html_notebook
+---
+
+Take DE results for atac-seq peaks, select the top 20 genes, and plot their CPMs as I do with the expression patterns of RNA-seq data.
+
+```{r setup}
+
+library(edgeR)
+library(knitr)   # for kable tables
+
+currentDate <- Sys.Date() # to save date in name of output files
+
+
+
+sample=factor(c("sbad2.1","sbad3.1","neo1.1"),levels=c("sbad2.1","sbad3.1","neo1.1"))   # data comes from three donors
+
+stage=factor(c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC"),levels=c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC")) # 8 stages
+
+
+
+```
+
+```{r read}
+
+load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_trimmed.xz",verbose=TRUE)  #loading the dge object for trimmed peak counts
+
+#re-order
+
+DE_peak<-list()  # for final tables
+
+#### the following might require changes
+
+
+for(i in stage){
+  
+  
+  DE_peak[[i]] <- read.csv(file=paste("/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/DEA/peak/2016-12-08_sig_maxvals_",i,"_diff_peak_analysis.csv",sep=""),header=T)
+ 
+  
+}
+
+# select top 20 peaks
+
+
+DE_peak_subset <- list()
+for(i in stage){
+  
+  
+  DE_peak_subset[[i]] <-DE_peak[[i]][c(1:20),]
+ 
+  
+}
+
+
+
+```
+```{r plot specific peaks}
+
+peak_names=c("peak_chr12_7940122","peak_chr12_7941751","peak_chr12_7951365")
+
+
+# calculating CPMs
+
+CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
+
+CPMs=as.data.frame(CPMs)
+rownames(CPMs)=as.factor(rownames(CPMs))
+
+
+
+plot_long=CPMs[match(peak_names,rownames(CPMs)),]  # extracts from CPM data frame the rows that contain the genes of interest
+plot_long=na.omit(plot_long)              # remove NAs, in case there was not a match for a gene
+
+diff=setdiff(peak_names,rownames(CPMs))           # which ones in the list are not in the table (probably have a different name)?
+
+#order the columns by stage
+plot_long=plot_long
+
+gene_number=nrow(plot_long)   # how many genes to plot
+
+# melt data for ggplot2
+
+long = melt(plot_long, measure.vars = c(1:24))
+head(long)
+
+gsub("(ENSG[0-9]+)-*", "\\1", long$variable)
+
+
+
+# rename stages and samples
+stage_2= c("iPSC", "DE", "PGT", "PFG", "PE", "EP","EN", "BLC")  #shortening EN names EN7= BLC (beta-like cells)
+samples <- c(rep(origin,8))
+long$variable=rep(stage_2,each=3*gene_number)                    # sample size times number of genes
+colnames(long)[which(names(long) == "variable")] <- "stage"
+long$sample=rep(samples,each=gene_number)
+long$stage <- factor(long$stage, levels=stage_2)
+long$sample=as.factor(long$sample)
+head(long)
+
+```
+
+```{r plot top DE}
+
+
+# calculating CPMs
+
+CPMs=cpm(dge, normalized.lib.sizes=TRUE, log=FALSE)  #calculate counts per million using the normalized library sizes
+
+CPMs=as.data.frame(CPMs)
+rownames(CPMs)=as.factor(rownames(CPMs))
+
+# subset CPM with top peaks
+
+CPM_list <- list()
+
+for(i in stage){
+  
+  
+  CPM_list[[i]] <-CPMs[which(rownames(CPMs) %in% as.character(unlist(DE_peak_subset[[i]][1]))),]
+ 
+  
+}
+
+
+
+# melt data for ggplot2
+melted <- list()
+library(reshape2) 
+
+melted <- lapply(CPM_list, melt)   
+
+# grep everything before "-" and after "-", and put in two columns
+
+gsub("(ENSG[0-9]+)-*", "\\1", melted$iPSC$variable)
+
+
+long = melt(plot_long, measure.vars = c(3:26))
+head(long)
+
+# rename stages and samples
+stage_2= c("iPSC", "DE", "PGT", "PFG", "PE", "EP","EN", "BLC")  #shortening EN names EN7= BLC (beta-like cells)
+samples <- c(rep(origin,8))
+long$variable=rep(stage_2,each=3*gene_number)                    # sample size times number of genes
+colnames(long)[which(names(long) == "variable")] <- "stage"
+long$sample=rep(samples,each=gene_number)
+long$stage <- factor(long$stage, levels=stage_2)
+long$sample=as.factor(long$sample)
+head(long)
+
+
+library(ggplot2)
+
+
+  # png("/Users/Marta/Documents/WTCHG/DPhil/Plots/gene_list_13-11-2016.png", type="cairo",
+  #      width=5,height=10,units="in",res=300,pointsize = 13)
+  # p <- ggplot(data = long, aes(x = stage, y = value,group=sample )) +
+  #   ggtitle("Counts per gene, stage & sample") +
+  #   xlab ("Differentiation stages") +
+  #   ylab ("Counts (TPM)") +
+  #   geom_line(aes(col = sample), size = 1) + facet_wrap(~GeneName,scales="free",nrow=2)
+  # print(p)
+  # dev.off()
+
+
+
+
+```
