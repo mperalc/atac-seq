@@ -84,20 +84,30 @@ gene_number=nrow(plot_long)   # how many genes to plot
 
 long = melt(plot_long, measure.vars = c(1:24))
 head(long)
+long$variable=as.character(long$variable)
 
 gsub("(ENSG[0-9]+)-*", "\\1", long$variable)
+long$stage=gsub("-.*$", "", long$variable)
+long$sample=gsub(".*-", "", long$variable)
+
 
 
 
 # rename stages and samples
-stage_2= c("iPSC", "DE", "PGT", "PFG", "PE", "EP","EN", "BLC")  #shortening EN names EN7= BLC (beta-like cells)
-samples <- c(rep(origin,8))
-long$variable=rep(stage_2,each=3*gene_number)                    # sample size times number of genes
-colnames(long)[which(names(long) == "variable")] <- "stage"
-long$sample=rep(samples,each=gene_number)
-long$stage <- factor(long$stage, levels=stage_2)
-long$sample=as.factor(long$sample)
+
+long$stage <- factor(long$stage, levels=stage)
+long$sample <- factor(long$sample, levels=sample)
 head(long)
+
+ png("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_DE_list_NANOG.png", type="cairo",
+       width=5,height=10,units="in",res=300,pointsize = 13)
+  p <- ggplot(data = long, aes(x = stage, y = value,group=sample )) +
+    ggtitle("Counts per gene, stage & sample") +
+    xlab ("Differentiation stages") +
+    ylab ("Counts (TPM)") +
+    geom_line(aes(col = sample), size = 1) + facet_wrap(~GeneName,scales="free",nrow=2)
+  print(p)
+  dev.off()
 
 ```
 
