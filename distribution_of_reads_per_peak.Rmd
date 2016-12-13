@@ -32,6 +32,7 @@ each_peak_counts_mean=rowMeans(counts[7:ncol(counts)])
 mean(each_peak_counts_mean)  # gives same result as above
 
 all_sample_counts_variance=var(appended_columns) # calculate variance for counts for all samples
+all_sample_counts_median=median(appended_columns)
 
 # mode
 getmode <- function(v) {

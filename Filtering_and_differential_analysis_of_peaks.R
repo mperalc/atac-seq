@@ -152,76 +152,76 @@ nrow(dge)/old_peaks #proportion of peaks that remain
 # how many filtered "peaks" do we have per stage?
 # peaks here is not what has been called by narrowpeaks, but peaks that have at least 1 CPM for all three samples
 
-
-cpm_data=cpm(dge, normalized.lib.sizes=TRUE)
-
-count_by_stage=function(data){
-  
-  data[data<1]=0
-  data[data>1]=1 # convert to table where 0=0 and 1 equals any value above n
-  
-  stage_columns<-list() # initiate list, to save modified dataframes
-  sum_of_rows<-list()    # initiate list, to save result of sum of all three samples for each stage
-  
-  #then count how many  have a result of 3 --> peak in that stage
-  peak_expressed_in_stage<-list()
-  
-  true_and_false=data.frame()
-  for (s in stage){
-  stage_columns[[s]]=data[,grepl(s, colnames(data))]
-  
-  sum_of_rows[[s]]=rowSums(stage_columns[[s]])
-  
-
-  
-  peak_expressed_in_stage[[s]]= sum(sum_of_rows[[s]]==3)   # sum in this case counts TRUE as 1 and FALSE as 0
-  
-  
-  # peak exclusive of each stage:
-  # take row of TRUEs for every stage
-  #out of the loop, check row in general table of 0 and 1
-  # if it's 3, keep, if over 3, discard
-  if(s=="iPSC"){
-  true_and_false= cbind(rownames(stage_columns[[s]]),sum_of_rows[[s]]==3)
-  }
-  if(s %in% as.character(stage[-1])){
-    
-    true_and_false= cbind(true_and_false,sum_of_rows[[s]]==3)
-  }
-  
-  
-  
-  }
-  
-  # rename columns in dataframe for comparison
-  colnames(true_and_false)=c("peak","iPSC","DE","PGT","PFG","PE","EP","EN","BLC")
-  true_and_false=as.data.frame(true_and_false)
-  
-  # take out peak column
-  true_and_false=true_and_false[-1]
-  true_and_false=sapply(true_and_false,as.logical)
-  true_and_false=as.data.frame(true_and_false)
-  specific_peaks=data.frame(peaks=rownames(data))   # dataframe to save results
-  
-
-  for(n in 1:8){  # go columns by column
-    
-    # in each row
-   specific_peaks[n]= ( true_and_false[n]==T & all(true_and_false[-n]==F) ) # if and only if n=T and all others are F, result is TRUE
-  #fix
-  }
-  
-  # temp solution: count by eye
-  temp=data[which(rowSums(data)<4),]
-  
-  specific_peaks=cbind(rownames(data),specific_peaks)
-  rm(data)
-  return(c)
-  
-}
-
-c=count_by_stage(cpm_data)  # calling previous function
-
+# 
+# cpm_data=cpm(dge, normalized.lib.sizes=TRUE)
+# 
+# count_by_stage=function(data){
+#   
+#   data[data<1]=0
+#   data[data>1]=1 # convert to table where 0=0 and 1 equals any value above n
+#   
+#   stage_columns<-list() # initiate list, to save modified dataframes
+#   sum_of_rows<-list()    # initiate list, to save result of sum of all three samples for each stage
+#   
+#   #then count how many  have a result of 3 --> peak in that stage
+#   peak_expressed_in_stage<-list()
+#   
+#   true_and_false=data.frame()
+#   for (s in stage){
+#   stage_columns[[s]]=data[,grepl(s, colnames(data))]
+#   
+#   sum_of_rows[[s]]=rowSums(stage_columns[[s]])
+#   
+# 
+#   
+#   peak_expressed_in_stage[[s]]= sum(sum_of_rows[[s]]==3)   # sum in this case counts TRUE as 1 and FALSE as 0
+#   
+#   
+#   # peak exclusive of each stage:
+#   # take row of TRUEs for every stage
+#   #out of the loop, check row in general table of 0 and 1
+#   # if it's 3, keep, if over 3, discard
+#   if(s=="iPSC"){
+#   true_and_false= cbind(rownames(stage_columns[[s]]),sum_of_rows[[s]]==3)
+#   }
+#   if(s %in% as.character(stage[-1])){
+#     
+#     true_and_false= cbind(true_and_false,sum_of_rows[[s]]==3)
+#   }
+#   
+#   
+#   
+#   }
+#   
+#   # rename columns in dataframe for comparison
+#   colnames(true_and_false)=c("peak","iPSC","DE","PGT","PFG","PE","EP","EN","BLC")
+#   true_and_false=as.data.frame(true_and_false)
+#   
+#   # take out peak column
+#   true_and_false=true_and_false[-1]
+#   true_and_false=sapply(true_and_false,as.logical)
+#   true_and_false=as.data.frame(true_and_false)
+#   specific_peaks=data.frame(peaks=rownames(data))   # dataframe to save results
+#   
+# 
+#   for(n in 1:8){  # go columns by column
+#     
+#     # in each row
+#    specific_peaks[n]= ( true_and_false[n]==T & all(true_and_false[-n]==F) ) # if and only if n=T and all others are F, result is TRUE
+#   #fix
+#   }
+#   
+#   # temp solution: count by eye
+#   temp=data[which(rowSums(data)<4),]
+#   
+#   specific_peaks=cbind(rownames(data),specific_peaks)
+#   rm(data)
+#   return(c)
+#   
+# }
+# 
+# c=count_by_stage(cpm_data)  # calling previous function
+# 
 
 
 
@@ -466,7 +466,7 @@ plot_pca=function(x,s=samples,st=stages){
 p=plot_pca(v2$E)
 p
 
-ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_voom_atac-seq_withscaling_",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
+# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_voom_atac-seq_withscaling_",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
 
 
 

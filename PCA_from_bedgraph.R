@@ -15,9 +15,11 @@ stage=as.character(c(1:6))
 stage_2=rep(stage,4)
 
 table <- read.table(file="normalized_matrix_peaks_multiBigwigSummary.tab") # first 3 columns: chr, start and end of peak
-table= table[4:ncol(table)]   # from column 4 we have the counts for each sample
-colnames(table)=paste(samples_2,stage_2,sep="")
 
+colnames(table)[4:ncol(table)]=paste(samples_2,stage_2,sep="")  # give names
+colnames(table)[1:3] = c("chr","start","end")
+
+counts=table[4:ncol(table)]
 #read in table of names
 
 names <- read.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/names_samples.txt",header = T)
@@ -59,7 +61,7 @@ plot_pca=function(x){
   return(p)
 }
 
-p1=plot_pca(table)
+p1=plot_pca(counts)
 ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA1",currentDate,".jpg",sep=""),p1,width=8,height=8,units="in",dpi=300)
 
 
@@ -97,7 +99,7 @@ plot_pca=function(x){
   return(p)
 }
 
-p2=plot_pca(table)
+p2=plot_pca(counts)
 
 
 #PC3 vs 4
@@ -133,7 +135,7 @@ plot_pca=function(x){
   return(p)
 }
 
-p3=plot_pca(table)
+p3=plot_pca(counts)
 
 
 plot_pca=function(x){
@@ -168,7 +170,7 @@ plot_pca=function(x){
   return(p)
 }
 
-p4=plot_pca(table)
+p4=plot_pca(counts)
 
 
 get_legend<-function(myggplot){
@@ -200,8 +202,8 @@ plotMDS.invisible <- function(...){
 }
 
 pretty_mds=function(table){
-  mds_p=plotMDS.invisible(table,gene.selection = "pairwise")    # pairwise method (default)
-  mds_c=plotMDS.invisible(table,gene.selection = "common")      #common method 
+  mds_p=plotMDS.invisible(counts,gene.selection = "pairwise")    # pairwise method (default)
+  mds_c=plotMDS.invisible(counts,gene.selection = "common")      #common method 
   
   
   # Rearrange data for ggplot
@@ -269,7 +271,82 @@ pretty_mds=function(table){
   return(list(mp,mc))   #return both plots as a list
 }
 
-mds_plots=pretty_mds(table)
+mds_plots=pretty_mds(counts)
 
 plot(mds_plots[[1]])
 plot(mds_plots[[2]])
+
+
+
+####### investigate distribution of counts
+
+mean_peak_length=mean(table$end-table$start)  # calculate mean peak length
+median_peak_length=median(table$end-table$start)  # calculate mean peak length
+
+each_sample_counts_mean=colMeans(counts[1:ncol(counts)]) # calculate mean counts per sample
+appended_columns=unlist(counts[1:ncol(counts)],use.names = F)
+all_sample_counts_mean=mean(appended_columns)   # calculate mean counts for all samples
+# also, for each peak:
+each_peak_counts_mean=rowMeans(counts[1:ncol(counts)])
+mean(each_peak_counts_mean)  # gives same result as above
+
+all_sample_counts_variance=var(appended_columns) # calculate variance for counts for all samples
+
+# mode
+getmode <- function(v) {
+  uniqv <- unique(v)
+  uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+mode= getmode(appended_columns)
+
+####plot distribution of reads per peak
+
+#### empty rows when I aggregate, not recognised as empty or NA
+# what is going on??
+
+library(ggplot2)
+library(grid)
+library(gridExtra)
+
+unique_values_counts=aggregate(data.frame(count = appended_columns), list(value = appended_columns), length)
+
+colnames(unique_values_counts)=c("counts_in_peak","number")
+
+sum(unique_values_counts$number)  # total times a counts_in_peak values is repeated 
+# 5570832
+length(unique_values_counts$counts_in_peak)
+# frequency for each unique value of counts per peak:
+
+unique_values_counts$frequency=unique_values_counts$number/sum(unique_values_counts$number)
+
+sum(unique_values_counts$frequency) # sum of all frequencies gives 1 
+
+p1 <- ggplot(unique_values_counts, aes(x=counts_in_peak, y=frequency))
+p1 <- p1 + geom_point() + scale_x_continuous(limits = c(0, 100))
+plot(p1)
+
+# another way
+
+library(reshape2)
+library(plyr)
+library(geneplotter)
+mdata <- melt(counts,na.rm = T) 
+
+mdata_aggregated=count(mdata, c("variable", "value"))
+# sum(mdata_aggregated[which(mdata_aggregated$value==0.0000),3])  # sum of all 0s in all samples is equal to the total sum of 0s in unique_values_counts
+
+colnames(mdata_aggregated)=c("samples","normalized_counts_per_peak","number")
+# fix 
+#mdata_aggregated$frequency_per_sample=mdata_aggregated$number/sum(mdata_aggregated$number[which(mdata_aggregated)])
+
+
+p1 <- ggplot(mdata_aggregated,aes(x=normalized_counts_per_peak, y=number, colour = samples)) +
+  geom_point() +  scale_x_continuous(limits=c(0,10),breaks=c(1:10))
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/normalised_counts_from_deeptools_distribution_",currentDate,".jpg",sep=""),p1,width=6,height=5,units="in",dpi=300)
+
+
+p2 <- ggplot(mdata_aggregated,aes(x=normalized_counts_per_peak, y=number, colour = samples)) +
+  geom_point() +  scale_x_continuous(limits=c(0,1000))
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/normalised_counts_from_deeptools_distribution_zoomout",currentDate,".jpg",sep=""),p2,width=6,height=5,units="in",dpi=300)
+

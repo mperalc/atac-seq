@@ -21,6 +21,7 @@ stage=factor(c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC"),levels=c("iPSC","DE
 rownames(counts)=counts[,1]
 counts=counts[,c(7:ncol(counts))] # getting just the counts, peaks are row names
 
+counts=counts[c(2,3,1,4,5,6,8,9,7,11,10,12,15,14,13,16,18,17,20,19,21,24,23,22)]  # reordering samples!!
 ```
 Conservative counts initially has `r nrow(counts)` peaks, and looks like this: 
 
@@ -44,7 +45,7 @@ group <- rep(stage,each=3)    #group by stages
 
 dge <- DGEList(counts=counts,group=group) #create dge object, TMM normalization by default
 
-
+# 
 # save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
 ```
 
@@ -64,9 +65,27 @@ library(ggplot2)
 library(grid)
 library(gridExtra)
 
+each_sample_counts_mean=colMeans(CPMs) # calculate mean counts per sample
 appended_columns=unlist(CPMs,use.names = F)
 all_sample_counts_mean=mean(appended_columns)   # calculate mean counts for all samples
+# also, for each peak:
+each_peak_counts_mean=rowMeans(CPMs)
+mean(each_peak_counts_mean)  # gives same result as above
+all_sample_counts_median=median(appended_columns)
+
 all_sample_counts_variance=var(appended_columns) # calculate variance for counts for all samples
+all_sample_counts_median=median(appended_columns)
+
+# mode
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+mode= getmode(appended_columns)
+
+
+
 
 unique_values_counts=aggregate(data.frame(count = appended_columns), list(value = appended_columns), length)
 
@@ -103,12 +122,13 @@ mdata_aggregated=count(mdata, c("variable", "value"))
 # sum(mdata_aggregated[which(mdata_aggregated$value==0.0000),3])  # sum of all 0s in all samples is equal to the total sum of 0s in unique_values_counts
 
 colnames(mdata_aggregated)=c("samples","normalized_CPMs_per_peak","number")
-# fix 
+
 #mdata_aggregated$frequency_per_sample=mdata_aggregated$number/sum(mdata_aggregated$number[which(mdata_aggregated)])
 
 
-ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
+p1 <- ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
   geom_point() +  scale_x_continuous(limits=c(0,10),breaks=c(1:10))
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/normalised_CPMs_from_plotCoverage_distribution_",currentDate,".jpg",sep=""),p1,width=6,height=5,units="in",dpi=300)
 
 ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
   geom_point() +  scale_x_continuous(limits=c(0,1000))
