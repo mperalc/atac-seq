@@ -2,7 +2,7 @@
 title: "Differential analysis of atac-seq peaks"
 output: html_notebook
 ---
-Differential atac-seq analysis as with RNA-seq data.
+# Differential atac-seq analysis as with RNA-seq data.
 
 
 I start the analysis from a file that contains the feature counts per peak and that has the following columns: Geneid,	Chr,	Start,	End,	Strand,	Length,	and each sample & differentiation stage. Check beforehand that the count distribution looks like a negative binomial distribution (variance larger than mean).
@@ -25,7 +25,8 @@ counts=counts[,c(7:ncol(counts))] # getting just the counts
 
 counts=counts[c(2,3,1,4,5,6,8,9,7,11,10,12,15,14,13,16,18,17,20,19,21,24,23,22)]  # reordering samples
 ```
-#Step 1: exploratory normalization
+## Step 1: exploratory normalization
+
 This initial normalization of atac-seq data doesn't have any filtering. Its purpose is to explore the behaviour of the counts and set a cutoff value for posterior filtering. I'll use edgeR, using TMM normalization, as the distribution of counts per peak (which will be treated as counts per gene, just like in RNA-seq data) is negative binomial (variance much larger than the mean). edgeR also manages better the presence of zero counts than limma+voom. 
 Now I will create the DGE object:
 
@@ -102,7 +103,7 @@ The mean counts for all samples is `r round(all_sample_counts_mean,digits=2)`.
 The variance of counts for all samples is `r round(all_sample_counts_variance,digits=2)`.
 
 
-#Step 2: exploratory filtering
+## Step 2: exploratory filtering
 
 Plot the distribution of CPM trimming and percentage of peaks that remain from the original amount (from CPM 1 to 7 or so).
 
@@ -192,7 +193,7 @@ p <- ggplot(df,aes(y=peaks_remain, x=CPM)) +
 
 With this plot one should have enough information to chose the right CPM cutoff.
 
-#Step 3: definitive normalization & filtering and differential ATAC analysis 
+## Step 3: definitive normalization & filtering and differential ATAC analysis 
 
 After cecking that everything looks OK and selecting the right normalization and CPM cutoff, we'll do the differential  analysis. This is going to be a "peak" differential analysis. It highlights peaks with counts that are more different per stage to all other stages. This is different to a contrast that would compare each stage to iPSC, for example. To do the second analysis one needs to change only the design matrix. For more info on how to do contrasts, see scripts for RNA-seq diff expression analysis. 
 
