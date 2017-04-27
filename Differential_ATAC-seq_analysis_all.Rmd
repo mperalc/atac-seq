@@ -5,7 +5,7 @@ output: html_notebook
 Differential atac-seq analysis as with RNA-seq data.
 
 
-I start the analysis from a file that contains the feature counts per peak and that has the following columns: Geneid,	Chr,	Start,	End,	Strand,	Length,	and each sample & differentiation stage.
+I start the analysis from a file that contains the feature counts per peak and that has the following columns: Geneid,	Chr,	Start,	End,	Strand,	Length,	and each sample & differentiation stage. Check beforehand that the count distribution looks like a negative binomial distribution (variance larger than mean).
 
 ```{r setup, include=FALSE, warning=FALSE}
 library(edgeR)
@@ -37,8 +37,8 @@ group <- rep(stage,each=3)    #group by stages
 
 
 dge <- DGEList(counts=counts,group=group) #create dge object
-
- save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
+# 
+#  save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
 ```
 Calculate the normalization factors using TMM:
 ```{r expl normalization, include=FALSE, warning=FALSE}
