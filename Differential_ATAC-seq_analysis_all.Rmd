@@ -13,8 +13,14 @@ library(knitr)   # for kable tables
 
 currentDate <- Sys.Date() # to save date in name of output files
 
-counts <- read.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/counts_all_samples_peaks_renamed.txt",header = T,check.names=F) # bed file with feature counts & info of start and end of peaks (all peaks present in at least one sample as detected by MACS2)
+counts <- read.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/peak_calling/IDR_peaks_from_bam_bds_pipeline/conservative_set/counts_all_samples_peaks_narrowpeaks_conservative_set_highQualityBams.txt",
+                     header = T,
+                     check.names=F,
+                     skip=1) # file with feature counts & info of start and end of peaks (all peaks present in at least one sample as detected by MACS2)
 
+colnames(counts)[7:ncol(counts)]=paste(rep(c("A","B","C","D"),each=6),
+                                       rep(as.character(c(1:6)),4),
+                                       sep="")  # rename columns for samples and stages
 
 sample=factor(c("sbad2.1","sbad3.1","neo1.1"),levels=c("sbad2.1","sbad3.1","neo1.1"))   # data comes from three donors
 
@@ -23,7 +29,11 @@ stage=factor(c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC"),levels=c("iPSC","DE
 rownames(counts)=counts[,1]  # peaks are row names
 counts=counts[,c(7:ncol(counts))] # getting just the counts
 
-counts=counts[c(2,3,1,4,5,6,8,9,7,11,10,12,15,14,13,16,18,17,20,19,21,24,23,22)]  # reordering samples
+# get sample and stage name 
+names=read.table("/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/names_samples.txt",header = T)
+colnames(counts)=paste(names[match(colnames(counts),names$ATAC),"stage"],
+                          names[match(colnames(counts),names$ATAC),"sample"],
+                          sep="-") # rename dataframe
 ```
 ## Step 1: exploratory normalization
 
