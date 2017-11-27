@@ -34,6 +34,7 @@ names=read.table("/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/na
 colnames(counts)=paste(names[match(colnames(counts),names$ATAC),"stage"],
                           names[match(colnames(counts),names$ATAC),"sample"],
                           sep="-") # rename dataframe
+
 ```
 ## Step 1: exploratory normalization
 
@@ -48,8 +49,8 @@ group <- rep(stage,each=3)    #group by stages
 
 
 dge <- DGEList(counts=counts,group=group) #create dge object
-# 
-#  save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
+ 
+  # save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
 ```
 Calculate the normalization factors using TMM:
 ```{r expl normalization, include=FALSE, warning=FALSE}
@@ -100,7 +101,7 @@ colnames(mdata_aggregated)=c("samples","normalized_CPMs_per_peak","number")
 
 p1 <- ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
   geom_point() +  scale_x_continuous(limits=c(0,10),breaks=c(1:10))
-# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/normalised_CPMs_from_plotCoverage_distribution_",currentDate,".jpg",sep=""),p1,width=6,height=5,units="in",dpi=300)
+ ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/normalised_CPMs_from_plotCoverage_distribution_",currentDate,".jpg",sep=""),p1,width=6,height=5,units="in",dpi=300)
 plot(p1)
 
 # ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
