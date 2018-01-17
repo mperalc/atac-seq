@@ -77,7 +77,7 @@ trim_by_stage_and_cpm=function(dge,CPM=1,old_peaks=dim(dge)[1]){
   trim_by_stage=function(dge){
     data=cpm(dge, normalized.lib.sizes=TRUE)
     data[data<CPM]=0
-    data[data>CPM]=1 # convert to table where 0=0 and 1 equals any value equal or above n
+    data[data>=CPM]=1 # convert to table where 0=0 and 1 equals any value equal or above n
     
     c=c() # initiate vector of numbers, to save rows to take out of matrix
     
