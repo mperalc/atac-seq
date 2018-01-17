@@ -31,4 +31,4 @@ source("/Users/Marta/Documents/WTCHG/R scripts/sort_by_2_strings.R")
 counts=cbind(counts[1:5],sort_by_2_strings(counts[c(6:ncol(counts))],stage,sample))
 
 write.table(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/peak_calling/IDR_peaks_from_bam_bds_pipeline/conservative_set/counts_all_samples_peaks_narrowpeaks_conservative_set_highQualityBams_renamed.txt",
-            counts,col.names = T,row.names = F,sep="\t")
+            counts,col.names = T,row.names = T,sep="\t")
