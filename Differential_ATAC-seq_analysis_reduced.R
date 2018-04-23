@@ -123,6 +123,8 @@ trim_by_stage_and_cpm=function(dge,CPM=1,old_peaks=dim(dge)[1]){
 # call trimming function for CPM=1
 
 dge <- trim_by_stage_and_cpm(dge,CPM=1,old_peaks=dim(dge)[1])
+nrow(dge$counts)
+# 174379
 dge <- calcNormFactors(dge)# recalculating normalization factors after altering library sizes
 
 nrow(dge)/old_peaks #proportion of peaks that remain
@@ -130,7 +132,6 @@ nrow(dge)/old_peaks #proportion of peaks that remain
 # save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
 
 load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz",verbose=TRUE)  #loading again the dge object to do the selected QC
-
 
 samples <- rep(sample,8)   
 
@@ -473,11 +474,11 @@ alltable <- topTable(fit2.2, sort="F", number=nrow(dge$counts))
 
 # write.csv(alltable,quote=F,row.names=F,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/Diff_v2/Voom/conservative_counts/contrasts/260916_diff_expression_results.csv")
 
-#get max conditions per gene
+#get max conditions per peak
 # grep columns with "Coef"
 maxVals <- apply(alltable,1,function(x) which.max(x[grep("\\bCoef", names(x), value=F)]))
 
-#find significant genes per stage
+#find significant peaks per stage
 #iPSC stage are all those where the max coefficient in all is < 0
 sig_iPSC_stage <- alltable[rowSums(alltable[,grep("\\bCoef", names(alltable), value=F)]< 0) == 7 & alltable$adj.P.Val < 0.01,]
 sig_DE_stage <- alltable[rowSums(alltable[,grep("\\bCoef", names(alltable), value=F)] < 0) < 7 & alltable$adj.P.Val < 0.01 & maxVals == 1,]
@@ -528,7 +529,7 @@ colnames(sig_EN7_stage)=c("logFC","adj.P.Val")
 DE_sig_stage[["BLC"]] <- sig_EN7_stage
 
 
-# select genes with logFC>1 and save
+# select peaks with logFC>1 and save
 
 for(i in names(DE_sig_stage)){
   gc()   # garbage collector for java
