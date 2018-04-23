@@ -10,6 +10,23 @@ I start the analysis from a file that contains the feature counts per peak and t
 ```{r setup, include=FALSE, warning=FALSE}
 library(edgeR)
 library(knitr)   # for kable tables
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(reshape)
+library(plyr)
+library(geneplotter)
+library(pheatmap)
+library(RColorBrewer)
+library(org.Hs.eg.db)
+library(limma)
+library(ggbiplot)
+library(ggrepel) # provides geoms for ggplot2 to repel overlapping text labels.
+
+library(ggfortify)
+library(reshape2)  # to modify dataframes for ggplot2
+library(knitr)   #for tables in rmd
+library(pander)  #more tables
 
 currentDate <- Sys.Date() # to save date in name of output files
 
@@ -35,6 +52,11 @@ colnames(counts)=paste(names[match(colnames(counts),names$ATAC),"stage"],
                           names[match(colnames(counts),names$ATAC),"sample"],
                           sep="-") # rename dataframe
 
+# sort by stage and sample
+source("/Users/Marta/Documents/WTCHG/R scripts/sort_by_2_strings.R")
+counts=sort_by_2_strings(counts,stage,sample)
+
+
 ```
 ## Step 1: exploratory normalization
 
@@ -43,14 +65,10 @@ Now I will create the DGE object:
 
 
 ```{r DGE, include=FALSE, warning=FALSE}
-
-
 group <- rep(stage,each=3)    #group by stages 
-
-
 dge <- DGEList(counts=counts,group=group) #create dge object
  
-  # save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
+#   save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
 ```
 Calculate the normalization factors using TMM:
 ```{r expl normalization, include=FALSE, warning=FALSE}
@@ -64,9 +82,6 @@ CPMs=as.data.frame(CPMs)
 
 ```{r plot_distribution,echo=FALSE, warning=FALSE,message=FALSE}
 
-library(ggplot2)
-library(grid)
-library(gridExtra)
 
 each_sample_counts_mean=colMeans(CPMs) # calculate mean counts per sample
 
@@ -90,9 +105,7 @@ mode= getmode(appended_columns)
 
 # plotting frequency of counts
 
-library(reshape)
-library(plyr)
-library(geneplotter)
+
 mdata <- melt(CPMs) 
 
 mdata_aggregated=count(mdata, c("variable", "value"))
@@ -119,7 +132,7 @@ The variance of counts for all samples is `r round(all_sample_counts_variance,di
 Plot the distribution of CPM trimming and percentage of peaks that remain from the original amount (from CPM 1 to 7 or so).
 
 ```{r exploratory trimming function, warning=FALSE}
-#load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz",verbose=TRUE)  #loading the dge object for conservative counts
+load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz",verbose=TRUE)  #loading the dge object for conservative counts
 
 old_peaks=dim(dge)[1]# save how many peaks there are initially
 
@@ -197,19 +210,19 @@ p <- ggplot(df,aes(y=peaks_remain, x=CPM)) +
   geom_line() + xlab("CPM cutoff") + ylab("% of peaks that remain") + 
   scale_x_continuous(limits=c(1,7),breaks=c(1:7)) + ylim(c(0,100)) 
   
-# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/CPM_cutoff_peaks_remaining",currentDate,".jpg",
-#              sep=""),p,width=4,height=4,units="in",dpi=300)
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distribution_counts_per_peak_plotCoverage/CPM_cutoff_peaks_remaining",currentDate,".jpg",
+             sep=""),p,width=4,height=4,units="in",dpi=300)
 
 ```
 
-With this plot one should have enough information to chose the right CPM cutoff.
+With this plot one should have enough information to chose the right CPM cutoff. A cutoff of 1 CPM is reasonable, and it's the same one that I had selected for RNA-seq.
 
 ## Step 3: definitive normalization & filtering and differential ATAC analysis 
 
 After cecking that everything looks OK and selecting the right normalization and CPM cutoff, we'll do the differential  analysis. This is going to be a "peak" differential analysis. It highlights peaks with counts that are more different per stage to all other stages. This is different to a contrast that would compare each stage to iPSC, for example. To do the second analysis one needs to change only the design matrix. For more info on how to do contrasts, see scripts for RNA-seq diff expression analysis. 
 
 ```{r step 3 norm and filtering, warning=FALSE}
-load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz",verbose=TRUE)  #loading again the dge object for conservative counts to do te selected QC
+ load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz",verbose=TRUE)  #loading again the dge object to do the selected QC
 
 
 dge <- calcNormFactors(dge) # Calculating normalization factors
@@ -287,17 +300,7 @@ dge <- calcNormFactors(dge)# recalculating normalization factors after altering 
 nrow(dge)/old_peaks #proportion of peaks that remain
 
 
-library(pheatmap)
-library(RColorBrewer)
-library(org.Hs.eg.db)
-library(limma)
-library(ggbiplot)
-library(ggrepel) # provides geoms for ggplot2 to repel overlapping text labels.
 
-library(ggfortify)
-library(reshape2)  # to modify dataframes for ggplot2
-library(knitr)   #for tables in rmd
-library(pander)  #more tables
 
 
 samples <- rep(sample,8)   
