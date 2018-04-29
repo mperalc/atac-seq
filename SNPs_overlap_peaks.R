@@ -2,7 +2,7 @@
 
 ### load libraries
 library(dplyr)
-#library(biomaRt)
+library(biomaRt)
 #library(readr)
 #library(vcfR)
 library(GenomicRanges)
@@ -61,16 +61,7 @@ nrow(peaks)
 # 
 # counts$Chr=gsub("\\chr*","",counts$Chr) #remove "chr" in every element in location
 # 
-# # load ensembl
-# # ensembl = useMart(biomart="ENSEMBL_MART_SNP", host="grch37.ensembl.org", path="/biomart/martservice" ,dataset="hsapiens_snp")
-# # # get regions to query in correct format
-# chr.region=paste(counts$Chr,counts$Start,counts$End,sep = ":")
-# filterlist <- list(as.character(chr.region))
-# # # biomart query
-# # results <- getBM(attributes = c("refsnp_id",'chr_name', "chrom_start", "chrom_end"),
-# #                  filters = c("chromosomal_region"),values = filterlist, mart = ensembl)
-# 
-# # biomart queries this big take too long
+
 
 colnames(credset)=c("chr","start")
 credset$end=credset$start
@@ -83,7 +74,7 @@ peaks.gr = makeGRangesFromDataFrame(peaks)
 
 # Get all credible set SNPs overlapping ATAC peaks:
 overlapSNP = subsetByOverlaps(credset.gr,peaks.gr)
-#overlapSNP=as.data.frame(overlapSNP)
+
 
 # Get all peaks overlapping credible set SNPs :
 overlapPeak = subsetByOverlaps(peaks.gr,credset.gr)
@@ -100,154 +91,8 @@ overlapPeak = subsetByOverlaps(peaks.gr,credset.gr)
 #### Annotate by promoter, coding, etc
 # 
 # 
-# library(ChIPpeakAnno)
-# data(TSS.human.GRCh37) # load TSS info from CRCh37
-# 
-# # range data and annotate position with respect to closest TSS
-# # This way I can see if it's in a promoter, inside a gene or in an intergenic region
-# 
-# range_data = function(data){
-#   rangedpeak = RangedData(IRanges(start=data$Start,end=data$End), # passing peak tables as ranged data
-#                           names=rownames(data),space=data$Chr)
-#   return(rangedpeak)
-# }
-# 
-# rangedPeaks = range_data(peaks)
-# annotatedPeak = annotatePeakInBatch(rangedpeak, AnnotationData=TSS.human.GRCh37) # annotate with hg19. Displays distance to nearest TSS for EVERY PEAK (default: output=nearestLocation)
-# annotatedPeak = annotatePeakInBatch(rangedPeaks, AnnotationData=TSS.human.GRCh37,output = "shortestDistance")
-# # "shortestDistance" will output nearest features to peaks
-# # Displays nearest features to TSS
-# 
-# annotatedPeak = as.data.frame(annotatedPeak)
+
 source('~/WTCHG/R scripts/atac-seq/annotate_GRanges_TxDb.R') # loading whoile genome annotation function
-# 
-# annotate_peaks_TxDb = function(peaks.gr){
-#   if(!any( is(peaks.gr)=="GRanges")){
-#     stop('peak object is not GRanges')
-#   }
-#   
-#   require(TxDb.Hsapiens.UCSC.hg19.knownGene)
-#   txdb <- TxDb.Hsapiens.UCSC.hg19.knownGene
-#   txdb
-#   
-#   # we can extract transcriptome data out of this object
-#   # TX <- transcripts(txdb)
-#   # 
-#   # TX
-#   # length(TX)
-#   
-#   GN = genes(txdb)
-#   GN
-#   length(GN)
-#   
-#   # intergenic
-#   GN <- reduce(GN, ignore.strand=T)
-#   intergenic <- gaps(GN)  # intergenic is just the complement of the genic, 
-#   intergenic <- intergenic[strand(intergenic) == "*"] #This is important!!! otherwise you'll get an additional 2 entries per chromosome (one for each of + and -)
-#   
-#   # get promoters (certain distance from TSS)
-#   PR <- promoters(txdb, upstream=2000, downstream=500)
-#   PR
-#   length(PR)
-#   # exons
-#   EX <- exons(txdb)
-#   EX
-#   length(EX)
-#   # substract promoter parts, because they are overlapping?
-#   
-#   # coding - subset of exon
-#   CD = cds(txdb)
-#   CD
-#   length(CD)
-#   # substract promoter parts, because they are overlapping
-#   
-#   
-#   # intron
-#   IN = intronicParts(txdb)
-#   IN
-#   length(IN)
-#   
-#   # TX = reduce(TX, ignore.strand=T) # ignoring strand info
-#   IN = reduce(IN, ignore.strand=T)
-#   CD = reduce(CD, ignore.strand=T)
-#   PR = reduce(PR, ignore.strand=T)
-#   EX = reduce(EX, ignore.strand=T)
-#   GN = reduce(GN, ignore.strand=T)
-#   
-#   # removing overlapping regions
-#   length(intergenic)
-#   intergenic = setdiff(intergenic , subsetByOverlaps( IN,intergenic))
-#   length(intergenic)
-#   intergenic = setdiff(intergenic , subsetByOverlaps( EX,intergenic))
-#   length(intergenic)
-#   intergenic = setdiff(intergenic , subsetByOverlaps( PR,intergenic))
-#   length(intergenic) # slightly more sequences than before. Length!=length of sequence
-#   
-#   length(IN)
-#   IN = setdiff(IN , subsetByOverlaps( EX,IN))
-#   length(IN)
-#   IN = setdiff(IN , subsetByOverlaps( PR,IN))
-#   length(IN)
-#   
-#   length(EX)
-#   EX = setdiff(EX, subsetByOverlaps(PR,EX))
-#   length(EX)
-#   
-#   # now that I have all the features I'm interested in, I can intersect and plot the membership of 
-#   # peaks
-#   # peaks overlapping GWAS
-#   # GWAS
-#   # overall genome - compare this to published info to see I'm doing it right
-#   
-#   ## all peaks data
-#   
-#   # this way I end up with the whole peak sequence of those that overlap the features
-#   PRallPeaks =subsetByOverlaps(peaks.gr,PR) # promoter
-#   EXallPeaks = subsetByOverlaps(peaks.gr,EX) # exon
-#   INallPeaks = subsetByOverlaps(peaks.gr,IN) # intron
-#   intergenicAllPeaks = subsetByOverlaps(peaks.gr,intergenic) # intergenic
-#   
-#   sum(length(PRallPeaks),length(EXallPeaks),length(INallPeaks),length(intergenicAllPeaks))-
-#     
-#     length(subsetByOverlaps(EXallPeaks,PRallPeaks))-
-#     length(subsetByOverlaps(INallPeaks,PRallPeaks))-
-#     length(subsetByOverlaps(intergenicAllPeaks,PRallPeaks)) -
-#     length(subsetByOverlaps(intergenicAllPeaks,EXallPeaks)) -
-#     length(subsetByOverlaps(intergenicAllPeaks,INallPeaks))-
-#     length(subsetByOverlaps(EXallPeaks,INallPeaks))
-#   
-#   # removing duplicates: prioritize assignment to PR 1st, EX 2nd, IN 3rd
-#   EXallPeaks = setdiff(EXallPeaks,subsetByOverlaps(EXallPeaks,PRallPeaks)) # substracting PR peaks from the EX peaks
-#   INallPeaks = setdiff(INallPeaks,subsetByOverlaps(INallPeaks,PRallPeaks)) # substracting PR peaks from the IN peaks
-#   INallPeaks = setdiff(INallPeaks,subsetByOverlaps(INallPeaks,EXallPeaks)) # substracting EX peaks from the IN peaks
-#   intergenicAllPeaks = setdiff(intergenicAllPeaks,subsetByOverlaps(intergenicAllPeaks,PRallPeaks)) # substracting PR peaks from the intergenic peaks
-#   intergenicAllPeaks = setdiff(intergenicAllPeaks,subsetByOverlaps(intergenicAllPeaks,EXallPeaks)) # substracting EX peaks from the intergenic peaks
-#   intergenicAllPeaks = setdiff(intergenicAllPeaks,subsetByOverlaps(intergenicAllPeaks,INallPeaks)) # substracting IN peaks from the intergenic peaks
-#   
-#   # % over 100% of peaks
-#   all = sum(length(PRallPeaks),length(EXallPeaks),length(INallPeaks),length(intergenicAllPeaks))
-#   
-#   mylist <- list() 
-#   
-#   mylist[["PR"]] = (length(PRallPeaks)/all)*100
-#   mylist[["EX"]] = (length(EXallPeaks)/all)*100
-#   mylist[["IN"]] = (length(INallPeaks)/all)*100
-#   mylist[["intergenic"]] = (length(intergenicAllPeaks)/all)*100 
-# 
-#   df <- do.call("rbind",mylist) #combine all vectors into a matrix
-#   df = as.data.frame(df)
-#   colnames(df) = "value"
-#   return(df)
-#   
-#   
-#   combined = c(PRallPeaks,EXallPeaks,INallPeaks,intergenicAllPeaks)
-#   setdiff(peaks.gr,combined) # it seems like unassigned peaks are intergenic
-#   
-#   # safer to remove them
-#   peaks.gr = setdiff(peaks.gr,setdiff(peaks.gr,combined))
-#   length(peaks.gr) == length(combined)
-#   
-# }
 
 # ATAC peaks and GWAS credible set SNPs
 allPeaksAnnotated = annotate_GRanges_TxDb(peaks.gr) 
@@ -288,4 +133,66 @@ dev.off()
 
 # To-do
 ## save peaks that overlap GWAS, and get nearest gene
+
+library(ChIPpeakAnno)
+data(TSS.human.GRCh37) # load TSS info from CRCh37
+
+# range data and annotate position with respect to closest TSS
+# This way I can see if it's in a promoter, inside a gene or in an intergenic region
+
+range_data = function(data){
+  rangedpeak = RangedData(IRanges(start=data$Start,end=data$End), # passing peak tables as ranged data
+                          names=rownames(data),space=data$Chr)
+  return(rangedpeak)
+}
+
+rangedPeaks = range_data(peaks)
+
+
+annotatedPeakAll = annotatePeakInBatch(overlapPeak, AnnotationData=TSS.human.GRCh37) # annotate with hg19. Displays distance to nearest TSS for EVERY PEAK (default: output=nearestLocation)
+annotatedPeakClosest = annotatePeakInBatch(overlapPeak, AnnotationData=TSS.human.GRCh37,output = "shortestDistance")
+# "shortestDistance" will output nearest features to peaks
+# Displays nearest features to TSS
+
+annotatedPeakAll = as.data.frame(annotatedPeakAll)
+annotatedPeakClosest = as.data.frame(annotatedPeakClosest)
+
+write.table(annotatedPeakAll,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs_AllPeakToGeneAnnotated.txt",
+            sep="\t", quote = F, row.names = F, col.names = T)
+
+write.table(annotatedPeakClosest,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs_ClosestPeakToGeneAnnotated.txt",
+            sep="\t", quote = F, row.names = F, col.names = T)
+
+write.table(as.data.frame(overlapPeak),file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs.txt",
+            sep="\t", quote = F, row.names = F, col.names = T)
+
 ## save SNPs that overlap peaks, and get nearest gene
+
+overlapSNPdf = as.data.frame(overlapSNP)
+colnames(overlapSNPdf) = c("chr","start","end","width","strand")
+overlapSNPdf$chr=gsub("\\chr*","",overlapSNPdf$chr) #remove "chr" in every element in location
+
+# load ensembl
+ensembl_SNP = useMart(biomart="ENSEMBL_MART_SNP", host="grch37.ensembl.org", path="/biomart/martservice" ,dataset="hsapiens_snp")
+# # get regions to query in correct format
+#chr.region=paste(overlapSNPdf$chr,overlapSNPdf$start,overlapSNPdf$end, "1", sep = ":")
+start_time <- Sys.time()
+results = list()
+for(s in 1:nrow(overlapSNPdf)){
+#  for(s in 1:10){
+    
+# # biomart query
+
+results[[s]] <- getBM(attributes = c('refsnp_id','chr_name','chrom_start','chrom_strand',"pmid"), 
+      filters = c('chr_name','start','end'), 
+      values = list(overlapSNPdf[s,1],overlapSNPdf[s,2],overlapSNPdf[s,3]), mart = ensembl_SNP) 
+
+  }
+end_time <- Sys.time()
+
+end_time - start_time
+
+results = do.call("rbind",results)
+
+write.table(results,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/SNPs_in_ATAC_peaks.txt",
+            sep="\t", quote = F, row.names = F, col.names = T)
