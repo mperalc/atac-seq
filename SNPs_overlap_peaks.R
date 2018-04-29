@@ -147,20 +147,25 @@ range_data = function(data){
 
 rangedPeaks = range_data(peaks)
 
+# Two methods of getting the nearest gene, both could be valid in principle
 
-annotatedPeakAll = annotatePeakInBatch(overlapPeak, AnnotationData=TSS.human.GRCh37) # annotate with hg19. Displays distance to nearest TSS for EVERY PEAK (default: output=nearestLocation)
-annotatedPeakClosest = annotatePeakInBatch(overlapPeak, AnnotationData=TSS.human.GRCh37,output = "shortestDistance")
+annotatedPeakNearestLoc = annotatePeakInBatch(overlapPeak, AnnotationData=TSS.human.GRCh37) # annotate with hg19. 
+annotatedPeakShortestDistance = annotatePeakInBatch(overlapPeak, AnnotationData=TSS.human.GRCh37,output = "shortestDistance")
 # "shortestDistance" will output nearest features to peaks
 # Displays nearest features to TSS
 
-annotatedPeakAll = as.data.frame(annotatedPeakAll)
-annotatedPeakClosest = as.data.frame(annotatedPeakClosest)
+annotatedPeakNearestLoc = as.data.frame(annotatedPeakNearestLoc )
+annotatedPeakShortestDistance = as.data.frame(annotatedPeakShortestDistance)
 
-write.table(annotatedPeakAll,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs_AllPeakToGeneAnnotated.txt",
+write.table(annotatedPeakNearestLoc,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs_AllPeakToGeneAnnotated.txt",
             sep="\t", quote = F, row.names = F, col.names = T)
 
-write.table(annotatedPeakClosest,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs_ClosestPeakToGeneAnnotated.txt",
+write.table(annotatedPeakShortestDistance,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs_annotatedPeakShortestDistance.txt",
             sep="\t", quote = F, row.names = F, col.names = T)
+
+# annotate with gene names
+
+
 
 write.table(as.data.frame(overlapPeak),file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/Peaks_over_SNPs.txt",
             sep="\t", quote = F, row.names = F, col.names = T)
