@@ -131,7 +131,6 @@ p
 dev.off()
 
 
-# To-do
 ## save peaks that overlap GWAS, and get nearest gene
 
 library(ChIPpeakAnno)
@@ -175,24 +174,67 @@ overlapSNPdf$chr=gsub("\\chr*","",overlapSNPdf$chr) #remove "chr" in every eleme
 # load ensembl
 ensembl_SNP = useMart(biomart="ENSEMBL_MART_SNP", host="grch37.ensembl.org", path="/biomart/martservice" ,dataset="hsapiens_snp")
 # # get regions to query in correct format
-#chr.region=paste(overlapSNPdf$chr,overlapSNPdf$start,overlapSNPdf$end, "1", sep = ":")
-start_time <- Sys.time()
-results = list()
-for(s in 1:nrow(overlapSNPdf)){
-#  for(s in 1:10){
-    
-# # biomart query
 
-results[[s]] <- getBM(attributes = c('refsnp_id','chr_name','chrom_start','chrom_strand',"pmid"), 
-      filters = c('chr_name','start','end'), 
-      values = list(overlapSNPdf[s,1],overlapSNPdf[s,2],overlapSNPdf[s,3]), mart = ensembl_SNP) 
+chr.regionF=paste(overlapSNPdf$chr,overlapSNPdf$start,overlapSNPdf$end, "1", sep = ":") # forward strand
+#chr.regionR=paste(overlapSNPdf$chr,overlapSNPdf$start,overlapSNPdf$end, "-1", sep = ":") # reverse strand
 
-  }
-end_time <- Sys.time()
 
-end_time - start_time
-
-results = do.call("rbind",results)
-
-write.table(results,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/SNPs_in_ATAC_peaks.txt",
-            sep="\t", quote = F, row.names = F, col.names = T)
+# biomart in R is a pain of timeouts
+# saving regions to query with browser
+write.table(data.frame(chr.regionF),file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/overlapSNPDF.txt",
+            +             sep="\t", quote = F, row.names = F, col.names = F)
+# start_time <- Sys.time()
+# 
+# # batch queries of regions 
+# # I had to reduce the regions queried at one time because some take too long and cause a connection timeout
+# # at the same time, calling getBM multiple times seems to cause longer wait 
+# # I'm pushing their servers a bit with so many calls because I don't see another way around it
+# 
+# resultsF = list()
+# 
+# get_SNP_ids_at_SNP_df_intervals <- function(overlapSNPdf,ensembl_SNP, i, interval) {
+#   # getting from i to f at interval from 1 to end of dataframe
+#   for(f in seq(from=i + interval, to=nrow(overlapSNPdf), by=interval)){
+#     if( nrow(overlapSNPdf) - f > interval){
+#       resultsF[[i]] <- getBM(attributes = c('refsnp_id','chr_name','chrom_start',"associated_gene","associated_variant_risk_allele"),
+#                              filters = c('chromosomal_region'),
+#                              values = list(as.factor(chr.regionF[i:f])), mart = ensembl_SNP) # chromosomal region needs to be a list of factors for this to work
+#       
+#       
+#     }
+#     else{ # last batch goes through this "else"
+#       resultsF[[i]] <- getBM(attributes = c('refsnp_id','chr_name','chrom_start','chrom_strand'),
+#                              filters = c('chromosomal_region'),
+#                              values = list(as.factor(chr.regionF[i:nrow(overlapSNPdf)])), mart = ensembl_SNP) 
+#      
+#     }
+#     i = f
+#     assign("i", i, envir = .GlobalEnv) # to pass the value of i to outside the functions
+#     message(paste("f is ", f,sep = ""))
+#   }
+#   return(resultsF)
+# }
+# 
+# attempt <- 1
+# i = 1
+# while( length(resultsF)==0 && attempt <= 200 ) {
+#   try(
+#     if(attempt==1 | i==1){
+#     resultsF<- get_SNP_ids_at_SNP_df_intervals(overlapSNPdf,ensembl_SNP, i = 1, interval = 100)
+#     }
+#     else{ # here i has been received from within function in previous attempts
+#       resultsF <- get_SNP_ids_at_SNP_df_intervals(overlapSNPdf,ensembl_SNP, i = i, interval = 100)
+#       
+#     }
+#   )
+#   attempt <- attempt + 1
+#   
+# } # if you want to stop this function while running you need to terminate R
+# 
+# end_time <- Sys.time()
+# end_time - start_time
+# 
+# results = do.call("rbind",results)
+# 
+# write.table(results,file="/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/SNPs_in_ATAC_peaks.txt",
+#             sep="\t", quote = F, row.names = F, col.names = T)
