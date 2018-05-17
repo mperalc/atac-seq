@@ -9,24 +9,9 @@ I start the analysis from a file that contains the feature counts per peak and t
 
 ```{r setup, include=FALSE, warning=FALSE}
 library(edgeR)
-library(knitr)   # for kable tables
 library(ggplot2)
-library(grid)
-library(gridExtra)
-library(reshape)
+library(reshape2)
 library(plyr)
-library(geneplotter)
-library(pheatmap)
-library(RColorBrewer)
-library(org.Hs.eg.db)
-library(limma)
-library(ggbiplot)
-library(ggrepel) # provides geoms for ggplot2 to repel overlapping text labels.
-
-library(ggfortify)
-library(reshape2)  # to modify dataframes for ggplot2
-library(knitr)   #for tables in rmd
-library(pander)  #more tables
 
 currentDate <- Sys.Date() # to save date in name of output files
 
