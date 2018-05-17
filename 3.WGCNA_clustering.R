@@ -2,8 +2,8 @@
 # ATAC = raw counts filytered 10 CPM
 
 Power = 12
-Size = 60
-deepsplit = 4
+Size = 120
+deepsplit = 2
 
 ## load libraries
 library("WGCNA")
@@ -13,9 +13,13 @@ library("DESeq2")
 library(RDAVIDWebService)
 library(ggplot2)
 
+# directories
+input = "../data/"
+output = "../results/"
 
 ## load data
-load(file = "dge_atac-seq_10CPM_trim.xz", verbose = TRUE)
+load(file = paste(input,"dge_atac-seq_10CPM_trim.xz", sep = ""),
+     verbose = TRUE)
 
 
 
@@ -51,7 +55,7 @@ design$stage = factor(design$stage, levels(design$stage))
 vsd <- varianceStabilizingTransformation(dds)
 vstMat = assay(vsd)
 write.table(vstMat,
-            file = "vstMat.txt",
+            file = paste(output,"vstMat.txt",sep = ""),
             sep = "\t",
             quote = F)
 
@@ -63,12 +67,12 @@ write.table(vstMat,
 vsd_b <- varianceStabilizingTransformation(dds, blind = F)
 vstMat_b = assay(vsd)
 write.table(vstMat_b,
-            file = "vstMat.blind_F.txt",
+            file = paste(output,"vstMat.blind_F.txt",sep = ""),
             sep = "\t",
             quote = F)
 
 ### MDS plot
-pdf("mds.pdf", width = 10)
+pdf(paste(output,"mds.pdf",sep = ""), width = 10)
 par(mfrow = c(1, 2))
 plotMDS(vstMat, col = as.numeric(dds$stage))
 plotMDS(vstMat_b, col = as.numeric(dds$stage))
@@ -86,7 +90,7 @@ gsg$allOK
 ### pick power
 powers = c(c(1:10), seq(from = 12, to = 20, by = 2))
 sft = pickSoftThreshold(degData, powerVector = powers, verbose = 5)
-pdf(file = "WGCNA_softThreshold.pdf",
+pdf(file = paste(output, "WGCNA_softThreshold.pdf",sep = ""),
     width = 9,
     height = 5)
 
@@ -150,12 +154,12 @@ net = blockwiseModules(
   loadTOM = T,
   verbose = 3
 )
-save(net, file = "net.xz", compress = "xz")
+save(net, file = paste(output, "net.xz",sep = ""), compress = "xz")
 # ask Agata about message "cannot open compressed file 'blockwiseTOM-block.1.RData'" Is that file needed?
 table(net$colors)
 
 
-pdf("WGCNA_dendrogram.30M.pdf",
+pdf(paste(output,"WGCNA_dendrogram.30M.pdf",sep = ""),
     width = 12,
     height = 9)
 moduleColors = labels2colors(net$colors)
@@ -180,7 +184,7 @@ MEs = net$MEs
 geneTree = net$dendrograms[[1]]
 
 
-save(MEs, moduleLabels, moduleColors, geneTree, file = "ATAC_only_network.RData")
+save(MEs, moduleLabels, moduleColors, geneTree, file = paste(output,"ATAC_only_network.RData", sep = ""))
 
 lsdatME = moduleEigengenes(degData, moduleColors)$eigengenes
 datME = moduleEigengenes(degData, moduleColors)$eigengenes
@@ -191,7 +195,7 @@ MEs = moduleEigengenes(degData, moduleColors)$eigengenes
 pheno = data.frame(stage = as.numeric(design$stage))
 
 MET = orderMEs(cbind(MEs, pheno))
-pdf("WGCNA_cluster_eigenvectors.30M.pdf",
+pdf(paste(output,"WGCNA_cluster_eigenvectors.30M.pdf",sep = ""),
     width = 8,
     height = 12)
 par(cex = 0.9)
@@ -206,7 +210,7 @@ plotEigengeneNetworks(
 dev.off()
 
 
-pdf("Module_eigengenes.30M.barplots.pdf",
+pdf(paste(output,"Module_eigengenes.30M.barplots.pdf",sep = ""),
     width = 10,
     height = 3)
 for (i in 1:length(unique(moduleColors))) {
@@ -225,14 +229,14 @@ dev.off()
 gene2module = data.frame(gene = colnames(degData), module = moduleColors)
 write.table(
   gene2module,
-  file = "WGCNA.gene2module.30M.txt",
+  file = paste(output,"WGCNA.gene2module.30M.txt",sep = ""),
   sep = "\t",
   row.names = F,
   quote = F
 )
 
 #### make ribbon plots for each module  #####
-pdf("Modules.ribbon_plots.pdf")
+pdf(paste(output,"Modules.ribbon_plots.pdf",sep = ""))
 for (j in 1:dim(datME)[2]) {
   stages = levels(design$stage)
   min = rep(0, length(stages))
@@ -267,7 +271,7 @@ dev.off()
 #}
 
 #if(file.exists("net.xz")){
-vstMat = read.table("vstMat.txt")
+vstMat = read.table(paste(output,"vstMat.txt",sep = ""))
 degData = t(vstMat)
 load("net.xz")
 moduleLabels = net$colors
@@ -280,7 +284,7 @@ Alldegrees1$Module = moduleColors
 
 write.table(
   Alldegrees1,
-  "WGCNA.connectivity.gene2module.txt",
+  file = paste(output,"WGCNA.connectivity.gene2module.txt",sep = ""),
   sep = "\t",
   quote = F
 )
@@ -291,7 +295,7 @@ Alldegrees1_list <- split(Alldegrees1 , f = Alldegrees1$Module)
 for (i in 1:length(Alldegrees1_list)) {
   write.table(
     Alldegrees1_list[i],
-    file = paste0(
+    file = paste0(output,
       "WGCNA.connectivity.gene2module.",
       names(Alldegrees1_list)[i],
       ".txt"

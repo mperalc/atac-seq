@@ -4,9 +4,6 @@ output: html_notebook
 ---
 # Differential atac-seq analysis as with RNA-seq data.
 
-
-I start the analysis from a file that contains the feature counts per peak and that has the following columns: Geneid,	Chr,	Start,	End,	Strand,	Length,	and each sample & differentiation stage. Check beforehand that the count distribution looks like a negative binomial distribution (variance larger than mean).
-
 ```{r setup, include=FALSE, warning=FALSE}
 library(edgeR)
 library(knitr)   # for kable tables
@@ -30,17 +27,20 @@ library(pander)  #more tables
 
 currentDate <- Sys.Date() # to save date in name of output files
 
-sample=factor(c("sbad2.1","sbad3.1","neo1.1"),levels=c("sbad2.1","sbad3.1","neo1.1"))   # data comes from three donors
 
-stage=factor(c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC"),levels=c("iPSC","DE","PGT","PFG","PE","EP","EN","BLC")) # 8 stages
+sample = factor(c("sbad2.1", "sbad3.1", "neo1.1"),
+levels = c("sbad2.1", "sbad3.1", "neo1.1"))   # data comes from three donors
 
-
+stage = factor(
+c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC"),
+levels = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC")
+) # 8 stages
 
 
 ```
 
 
-After cecking that everything looks OK and selecting the right normalization and CPM cutoff, we'll do the differential  analysis. This is going to be a "peak" differential analysis. It highlights peaks with counts that are more different per stage to all other stages. This is different to a contrast that would compare each stage to iPSC, for example. To do the second analysis one needs to change only the design matrix. For more info on how to do contrasts, see scripts for RNA-seq diff expression analysis. 
+After checking that everything looks OK and selecting the right normalization and CPM cutoff, we'll do the differential  analysis. This is going to be a "peak" differential analysis. It highlights peaks with counts that are more different per stage to all other stages. This is different to a contrast that would compare each stage to iPSC, for example. To do the second analysis one needs to change only the design matrix. For more info on how to do contrasts, see scripts for RNA-seq diff expression analysis. 
 
 ```{r voom, warning=FALSE}
  load(file="/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz",verbose=TRUE)  #loading again the dge object to do the selected QC
