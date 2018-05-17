@@ -1,0 +1,317 @@
+---
+title: "QC and filtering"
+author: "Marta Pérez Alcántara"
+date: "17 de mayo de 2018"
+output: html_document
+---
+
+I start the analysis from a file that contains the feature counts per peak and that has the following columns: Geneid,	Chr,	Start,	End,	Strand,	Length,	and each sample & differentiation stage. Check beforehand that the count distribution looks like a negative binomial distribution (variance larger than mean).
+
+```{r setup, include=FALSE, warning=FALSE}
+library(edgeR)
+library(knitr)   # for kable tables
+library(ggplot2)
+library(grid)
+library(gridExtra)
+library(reshape)
+library(plyr)
+library(geneplotter)
+library(pheatmap)
+library(RColorBrewer)
+library(org.Hs.eg.db)
+library(limma)
+library(ggbiplot)
+library(ggrepel) # provides geoms for ggplot2 to repel overlapping text labels.
+
+library(ggfortify)
+library(reshape2)  # to modify dataframes for ggplot2
+library(knitr)   #for tables in rmd
+library(pander)  #more tables
+
+currentDate <- Sys.Date() # to save date in name of output files
+
+
+counts <-
+read.table(
+file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/peak_calling/IDR_peaks_from_bam_bds_pipeline/conservative_set/counts_all_samples_peaks_narrowpeaks_conservative_set_highQualityBams.txt",
+header = T,
+check.names = F,
+skip = 1
+) # file with feature counts & info of start and end of peaks (all peaks present in at least one sample as detected by MACS2)
+
+colnames(counts)[7:ncol(counts)] = paste(rep(c("A", "B", "C", "D"), each =
+6),
+rep(as.character(c(1:6)), 4),
+sep = "")  # rename columns for samples and stages
+
+sample = factor(c("sbad2.1", "sbad3.1", "neo1.1"),
+levels = c("sbad2.1", "sbad3.1", "neo1.1"))   # data comes from three donors
+
+stage = factor(
+c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC"),
+levels = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC")
+) # 8 stages
+
+rownames(counts) = counts[, 1]  # peaks are row names
+counts = counts[, c(7:ncol(counts))] # getting just the counts
+
+# get sample and stage name
+names = read.table(
+"/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/names_samples.txt",
+header = T
+)
+colnames(counts) = paste(names[match(colnames(counts), names$ATAC), "stage"],
+names[match(colnames(counts), names$ATAC), "sample"],
+sep = "-") # rename dataframe
+
+# sort by stage and sample
+source("/Users/Marta/Documents/WTCHG/R scripts/sort_by_2_strings.R")
+counts = sort_by_2_strings(counts, stage, sample)
+
+```
+## Step 1: exploratory normalization
+
+The initial number of peaks is `r nrow(counts)`. The initial normalization of atac-seq data doesn't have any filtering. Its purpose is to explore the behaviour of the counts and set a cutoff value for posterior filtering. I'll use edgeR, using TMM normalization, as the distribution of counts per peak (which will be treated as counts per gene, just like in RNA-seq data) is negative binomial (variance much larger than the mean). edgeR also manages better the presence of zero counts than limma+voom. 
+Now I will create the DGE object:
+
+
+```{r DGE, include=FALSE, warning=FALSE}
+group <- rep(stage, each = 3)    #group by stages
+dge <- DGEList(counts = counts, group = group) #create dge object
+
+#   save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
+```
+Calculate the normalization factors using TMM:
+```{r expl normalization, include=FALSE, warning=FALSE}
+
+
+dge <-
+calcNormFactors(dge) # Calculating normalization factors, TMM normalization by default
+
+CPMs = cpm(dge, normalized.lib.sizes = TRUE, log = FALSE)  #calculate counts per million using the normalized library sizes
+
+CPMs = as.data.frame(CPMs)
+```
+
+```{r plot_distribution,echo=FALSE, warning=FALSE,message=FALSE}
+
+
+
+each_sample_counts_mean = colMeans(CPMs) # calculate mean counts per sample
+
+each_peak_counts_mean = rowMeans(CPMs)
+all_sample_counts_mean = mean(each_peak_counts_mean)    # calculate mean counts for all samples
+
+appended_columns = unlist(CPMs, use.names = F)
+all_sample_counts_median = median(appended_columns) # calculate median counts for all samples
+
+all_sample_counts_variance = var(appended_columns) # calculate variance for counts for all samples
+all_sample_counts_median = median(appended_columns)
+
+# mode
+getmode <- function(v) {
+uniqv <- unique(v)
+uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+mode = getmode(appended_columns)
+
+
+# plotting frequency of counts
+
+
+mdata <- melt(CPMs)
+
+mdata_aggregated = count(mdata, c("variable", "value"))
+
+colnames(mdata_aggregated) = c("samples", "normalized_CPMs_per_peak", "number")
+
+p1 = ggplot(mdata_aggregated, aes(x = normalized_CPMs_per_peak, y = number, colour = samples)) +
+geom_point() +  scale_x_continuous(limits = c(0, 10), breaks = c(1:10))
+ggsave(
+paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/normalised_CPMs_from_plotCoverage_distribution_", currentDate, ".jpg", sep = ""),
+p1,
+width = 6,
+height = 5,
+units = "in",
+dpi = 300
+)
+plot(p1)
+
+# ggplot(mdata_aggregated,aes(x=normalized_CPMs_per_peak, y=number, colour = samples)) +
+#   geom_point() +  scale_x_continuous(limits=c(0,1000))
+
+
+```
+The mean counts for all samples is `r round(all_sample_counts_mean,digits=2)`.
+The variance of counts for all samples is `r round(all_sample_counts_variance,digits=2)`.
+
+
+## Step 2: exploratory filtering
+
+Plot the distribution of CPM trimming and percentage of peaks that remain from the original amount (from CPM 1 to 7 or so).
+
+```{r exploratory trimming function, warning=FALSE}
+# load(file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz", verbose = TRUE)  #loading the dge object
+
+old_peaks = dim(dge)[1]# save how many peaks there are initially
+
+remainder_after_trim_by_stage_and_cpm = function(dge,
+                                                 CPM = 1,
+                                                 old_peaks = dim(dge)[1]) {
+  # 1st trim:
+  keep <-
+    rowSums(cpm(dge, normalized.lib.sizes = TRUE) > CPM) >= 3   # getting peaks with at least n cpm in at least one stage (3 rep per stage).
+  dge <-
+    dge[keep, , keep.lib.sizes = FALSE]  # removing unwanted peaks and adjusting the library size
+  
+  dge <-
+    calcNormFactors(dge)# recalculating normalization factors after altering library sizes
+  # if counts are distributed roughly equally across all samples, it should not change much
+  
+  # 2nd trim:
+  # go through the table 3 by 3
+  # if there are more than 2 values in three columns above 0, go to next row.
+  # if not, go to next 3
+  # if gets to end of loop and not found the values, get that row. After loop, subset matrix excluding those rows
+  
+  trim_by_stage = function(dge) {
+    data = cpm(dge, normalized.lib.sizes = TRUE)
+    data[data < CPM] = 0
+    data[data > CPM] = 1 # convert to table where 0=0 and 1 equals any value above n
+    
+    c = c() # initiate vector of numbers, to save rows to take out of matrix
+    
+    for (r in 1:nrow(data)) {
+      for (i in seq(1, 24, 3)) {
+        # loop through stages 3 by 3 (to jump over samples of same stage)
+        
+        if (sum(data[r, c(i, i + 1, i + 2)]) > 2) {
+          break
+        }
+        if (i == 22) {
+          c = c(c, r)  # if it gets to the end and there are no valid values, append to vector
+        }
+        
+        
+      }
+      
+    }
+    
+    rm(data)
+    return(c)
+    
+  }
+  
+  c = trim_by_stage(dge)  # calling function above
+  
+  fail = 100 * (length(c) / nrow(dge$counts))
+  peaks_fail = length(c)
+  ditch = dge$counts[c, ] # table to throw away
+  
+  keep = !(rownames(dge$counts) %in% rownames(ditch))
+  
+  dge <-
+    dge[keep, , keep.lib.sizes = FALSE]
+  
+  message(paste("The counts object now has ", nrow(dge$counts), " peaks", sep = ""))
+  
+  rm(c, keep, ditch)
+  
+  peaks_remain = ((nrow(dge) / old_peaks) * 100)
+  
+  return(peaks_remain)
+}
+
+# call function for all CPMs
+peaks_remain = c()
+for (i in 1:10) {
+  peaks_remain[i] = remainder_after_trim_by_stage_and_cpm(dge, CPM = i, old_peaks =
+                                                            dim(dge)[1])
+}
+
+
+df = data.frame(CPM = c(1:10), peaks_remain = peaks_remain)
+
+
+p <- ggplot(df, aes(y = peaks_remain, x = CPM)) +
+  geom_line() + xlab("CPM cutoff") + ylab("% of peaks that remain") +
+  scale_x_continuous(limits = c(1, 10), breaks = c(1:10)) + ylim(c(0, 100))
+p
+
+# ggsave(  paste(
+#     "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distribution_counts_per_peak_plotCoverage/CPM_cutoff_peaks_remaining",
+#     currentDate,
+#     ".jpg",
+#     sep = ""
+#   ),
+#   p,
+#   width = 4,
+#   height = 4,
+#   units = "in",
+#   dpi = 300
+# )
+
+```
+
+With this plot one should have enough information to chose the right CPM cutoff. A cutoff of 10 CPM is reasonable, as it is difficult to make sense of peaks with less than that amount of counts and will eliminate noise in the posterior WGCNA clustering.
+
+Save dge object after trimming:
+
+```{r final trim, warning=FALSE}
+CPM = 10
+
+# 1st trim:
+keep <-
+  rowSums(cpm(dge, normalized.lib.sizes = TRUE) > CPM) >= 3   # getting peaks with at least n cpm in at least one stage (3 rep per stage).
+dge <-
+  dge[keep, , keep.lib.sizes = TRUE]  
+
+
+# 2nd trim:
+# go through the table 3 by 3
+# if there are more than 2 values in three columns above 0, go to next row.
+# if not, go to next 3
+# if gets to end of loop and not found the values, get that row. After loop, subset matrix excluding those rows
+
+trim_by_stage = function(dge) {
+  data = cpm(dge, normalized.lib.sizes = TRUE)
+  data[data < CPM] = 0
+  data[data > CPM] = 1 # convert to table where 0=0 and 1 equals any value above n
+  
+  c = c() # initiate vector of numbers, to save rows to take out of matrix
+  
+  for (r in 1:nrow(data)) {
+    for (i in seq(1, 24, 3)) {
+      # loop through stages 3 by 3 (to jump over samples of same stage)
+      
+      if (sum(data[r, c(i, i + 1, i + 2)]) > 2) {
+        break
+      }
+      if (i == 22) {
+        c = c(c, r)  # if it gets to the end and there are no valid values, append to vector
+      }
+      
+      
+    }
+    
+  }
+  
+  rm(data)
+  return(c)
+  
+}
+
+c = trim_by_stage(dge)  # calling function above
+
+ditch = dge$counts[c, ] # table to throw away
+
+keep = !(rownames(dge$counts) %in% rownames(ditch))
+
+dge <-
+  dge[keep, , keep.lib.sizes = FALSE]
+
+save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz" , compress = "xz")   # saving the dge object
+
+```
+Saved dge object has `r nrow(dge$counts)` peaks.
