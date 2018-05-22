@@ -1,6 +1,8 @@
 ---
 title: "Differential analysis of atac-seq peaks"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 # Differential atac-seq analysis as with RNA-seq data.
 
@@ -26,7 +28,6 @@ library(knitr)   #for tables in rmd
 library(pander)  #more tables
 
 currentDate <- Sys.Date() # to save date in name of output files
-
 
 sample = factor(c("sbad2.1", "sbad3.1", "neo1.1"),
 levels = c("sbad2.1", "sbad3.1", "neo1.1"))   # data comes from three donors
@@ -215,7 +216,7 @@ plot_pca=function(x,s=samples,st=stages){
 p=plot_pca(v2$E)
 p
 
-# ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_voom_atac-seq_",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
+ggsave(paste("/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_voom_atac-seq_",currentDate,".jpg",sep=""),p,width=6,height=5,units="in",dpi=300)
 
 
 
@@ -367,3 +368,4 @@ for (i in names(DE_stages_logFC1)){
 
 
 
+```
