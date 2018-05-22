@@ -24,6 +24,7 @@ check.names = F,
 skip = 1
 ) # file with feature counts & info of start and end of peaks (all peaks present in at least one sample as detected by MACS2)
 
+
 colnames(counts)[7:ncol(counts)] = paste(rep(c("A", "B", "C", "D"), each =
 6),
 rep(as.character(c(1:6)), 4),
@@ -38,6 +39,7 @@ levels = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC")
 ) # 8 stages
 
 rownames(counts) = counts[, 1]  # peaks are row names
+genes = counts[,c(1:7)] # save info for later
 counts = counts[, c(7:ncol(counts))] # getting just the counts
 
 # get sample and stage name
@@ -62,7 +64,7 @@ Now I will create the DGE object:
 
 ```{r DGE, include=FALSE, warning=FALSE}
 group <- rep(stage, each = 3)    #group by stages
-dge <- DGEList(counts = counts, group = group) #create dge object
+dge <- DGEList(counts = counts, group = group, genes = genes) #create dge object
 
 #   save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
 ```
@@ -79,8 +81,6 @@ CPMs = as.data.frame(CPMs)
 ```
 
 ```{r plot_distribution,echo=FALSE, warning=FALSE,message=FALSE}
-
-
 
 each_sample_counts_mean = colMeans(CPMs) # calculate mean counts per sample
 
@@ -295,6 +295,12 @@ keep = !(rownames(dge$counts) %in% rownames(ditch))
 
 dge <-
   dge[keep, , keep.lib.sizes = TRUE]
+
+#keep only autosomal peaks
+chr <- as.factor(paste("chr", c(1:22), sep=""))
+dge <- dge[which(dge$genes$Chr %in% chr),, keep.lib.sizes = TRUE]
+
+dim(dge)
 
 save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz" , compress = "xz")   # saving the dge object
 
