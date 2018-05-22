@@ -4,6 +4,8 @@
 Power = 12
 Size = 120
 deepsplit = 2
+method = "signed hybrid"
+remove_outliers = T  # remove outliers? T / F
 
 ## load libraries
 library("WGCNA")
@@ -21,7 +23,14 @@ output = "../results/"
 load(file = paste(input,"dge_atac-seq_10CPM_trim.xz", sep = ""),
      verbose = TRUE)
 
+if (remove_outliers) {
 
+  keep = c("iPSC-sbad2.1", "iPSC-sbad3.1", "iPSC-neo1.1", "DE-sbad2.1", "DE-sbad3.1", "DE-neo1.1", "PGT-sbad2.1", "PGT-sbad3.1", 
+           "PGT-neo1.1", "PFG-sbad2.1", "PFG-sbad3.1", "PFG-neo1.1", "PE-sbad2.1", "PE-sbad3.1", "PE-neo1.1", "EP-sbad3.1", 
+           "EP-neo1.1", "EN-sbad3.1", "EN-neo1.1", "BLC-sbad3.1", "BLC-neo1.1")
+  dge <-
+    dge[ ,keep, keep.lib.sizes = TRUE]
+}
 
 dim(dge)
 #174,379     24
@@ -143,7 +152,7 @@ net = blockwiseModules(
   power = Power,
   maxBlockSize = 15500,
   TOMType = "signed",
-  networkType = "signed",
+  networkType = method,
   minModuleSize = Size,
   mergeCutHeight = 0.10,
   detectCutHeight = 0.99,
@@ -268,12 +277,11 @@ for (j in 1:dim(datME)[2]) {
 }
 dev.off()
 
-#}
 
-#if(file.exists("net.xz")){
+
 vstMat = read.table(paste(output,"vstMat.txt",sep = ""))
 degData = t(vstMat)
-load("net.xz")
+load(paste(output,"net.xz",sep=""))
 moduleLabels = net$colors
 moduleColors = labels2colors(net$colors)
 ### get connectivity values for each gene within its module
@@ -304,4 +312,4 @@ for (i in 1:length(Alldegrees1_list)) {
     quote = F
   )
 }
-#}
+
