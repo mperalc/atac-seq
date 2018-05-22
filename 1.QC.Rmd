@@ -148,7 +148,7 @@ remainder_after_trim_by_stage_and_cpm = function(dge,
   keep <-
     rowSums(cpm(dge, normalized.lib.sizes = TRUE) > CPM) >= 3   # getting peaks with at least n cpm in at least one stage (3 rep per stage).
   dge <-
-    dge[keep, , keep.lib.sizes = FALSE]  # removing unwanted peaks and adjusting the library size
+    dge[keep, , keep.lib.sizes = TRUE]  # removing unwanted peaks
   
   dge <-
     calcNormFactors(dge)# recalculating normalization factors after altering library sizes
@@ -294,7 +294,7 @@ ditch = dge$counts[c, ] # table to throw away
 keep = !(rownames(dge$counts) %in% rownames(ditch))
 
 dge <-
-  dge[keep, , keep.lib.sizes = FALSE]
+  dge[keep, , keep.lib.sizes = TRUE]
 
 save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz" , compress = "xz")   # saving the dge object
 
