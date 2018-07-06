@@ -1,3 +1,4 @@
+# important script
 # correlated peaks 1MB either side of peaks overlapping credible sets
 
 library(GenomicRanges)
@@ -410,7 +411,7 @@ load(file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overla
 # for genes within 500kb of every peak
 signCorGenesPerPeak_500 = mapply(function(X, Y) {
     rowSums(Y < 500000 & X < 0.05, na.rm = T)
-}, X = gene_matrices_pval, Y = gene_matrices_dist)
+}, X = gene_matrices_qval, Y = gene_matrices_dist)
 
 png(filename = paste(ATAC_dir, "hist_gene_cor_per_peak_500kbfromPeak.png", sep = ""))
 hist(
