@@ -245,13 +245,13 @@ Save dge object after trimming:
 
 ```{r final trim, warning=FALSE}
 CPM = 10
-
-# 1st trim:
-keep <-
-  rowSums(cpm(dge, normalized.lib.sizes = TRUE) > CPM) >= 3   # getting peaks with at least n cpm in at least one stage (3 rep per stage).
-dge <-
-  dge[keep, , keep.lib.sizes = TRUE]  
-
+# 
+# # 1st trim:
+# keep <-
+#   rowSums(cpm(dge, normalized.lib.sizes = TRUE) > CPM) >= 3   # getting peaks with at least n cpm in at least one stage (3 rep per stage).
+# dge <-
+#   dge[keep, , keep.lib.sizes = TRUE]  
+# 
 
 # 2nd trim:
 # go through the table 3 by 3
@@ -303,6 +303,11 @@ dge <- dge[which(dge$genes$Chr %in% chr),, keep.lib.sizes = TRUE]
 dim(dge)
 
 save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz" , compress = "xz")   # saving the dge object
+
+# save CPM table so I don't have to re-calculate CPMs on trimmed dge object (and therefore give lower CPMs than there really are!!
+
+CPMs = CPMs[which(rownames(CPMs) %in% dge$genes$Geneid),]
+write.table(CPMs, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/CPMs_atac-seq_10CPM_trim.txt")
 
 ```
 Saved dge object has `r nrow(dge$counts)` peaks.
