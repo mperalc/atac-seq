@@ -43,7 +43,7 @@ levels = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC")
 
 After checking that everything looks OK and selecting the right normalization and CPM cutoff, we'll do the differential  analysis. This is going to be a "peak" differential analysis. It highlights peaks with counts that are more different per stage to all other stages. This is different to a contrast that would compare each stage to iPSC, for example. To do the second analysis one needs to change only the design matrix. For more info on how to do contrasts, see scripts for RNA-seq diff expression analysis. 
 
-```{r voom, warning=FALSE}
+```{r voom and plots, warning=FALSE}
 load(file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz", verbose =
        TRUE)  #loading again the dge object to do the selected QC
        
@@ -286,13 +286,13 @@ pearson_cor = function(x){
   
  
   cormat <- round(cor(x,method = "pearson"),2)
-  reorder_cormat <- function(cormat) {
-    # Use correlation between variables as distance
-    dd <- as.dist((1 - cormat) / 2)
-    hc <- hclust(dd)
-    cormat <- cormat[hc$order, hc$order]
-  }
-  cormat = reorder_cormat(cormat)
+  # reorder_cormat <- function(cormat) {
+  #   # Use correlation between variables as distance
+  #   dd <- as.dist((1 - cormat) / 2)
+  #   hc <- hclust(dd)
+  #   cormat <- cormat[hc$order, hc$order]
+  # }
+  #cormat = reorder_cormat(cormat)
   
   melted_cormat <- melt(cormat)
   melted_cormat$X1 = factor(melted_cormat$X1,levels = paste(stages,samples,sep = "-"), ordered = T)
@@ -356,8 +356,20 @@ pcs <- as.data.frame(pca1$x)
 pcs <- cbind(pcs, sample = samples, stage = stages)
 pcs$stage <- ordered(pcs$stage, levels = stage)
 
+diaPalette <-
+    c(
+      "#000000",
+      "#CADAE8",
+      "#7883BA",
+      "#755A91",
+      "#CC85B1",
+      "#F4B8B0",
+      "#96665A",
+      "#96165A"
+    )  # Diabetologia pallete
 p <- ggplot(pcs, aes(PC1, PC2, colour = stage, shape = samples)) +
 geom_point(size = 3) + xlab(paste0("PC1:" , percentVar[1], "% variance")) +
+  scale_color_manual(values = diaPalette) +
 ylab(paste0("PC2: ", percentVar[2], "% variance"))
 p <-
 p + theme(
@@ -411,7 +423,9 @@ units = "in",
 dpi = 300
 )
 
+```
 
+```{r Diff atac, warning=FALSE}
 ###DEA per se
 
 
