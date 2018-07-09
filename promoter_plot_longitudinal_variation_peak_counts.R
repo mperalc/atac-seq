@@ -1,4 +1,5 @@
 # plot variation of peak counts accross stages for peak at promoter of selected gene
+# also plot RNA-seq data for said gene?
 # plotting longitudinal variation of peak counts
 
 
@@ -10,11 +11,11 @@ library(ggpubr)
 library(GenomicRanges)
 library(ChIPpeakAnno)
 data(TSS.human.GRCh37) # load TSS info from CRCh37
-
+library(biomaRt)
 ################## variable #################
-gene = "SOX2"
+gene = "KCNJ11"
 output_name = gene
-output_type = "tiff"  # can be: "png", "tiff", "multiple_png", "multiple_tiff", "pdf"
+output_type = "multiple_tiff"  # can be:  "multiple_png", "multiple_tiff"
 output_directory = "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_profiles/"
 ncol = 4
 TenCPM_filter = F  # peaks that have over 10CPM? (T or F) 
@@ -30,54 +31,25 @@ stages = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC") # 8 differentiat
 
 
 #####################################
-# all atac-seq data
-load(
-  "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz"
-)
-#if no CPM filter
+# select dataset to work on
 if (TenCPM_filter == F ) {
-peaks = as.data.frame(cpm(dge$counts))
+  peaks = read.table("/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/2018-07-09annotated_peaks_at_promoters_allCPMs.txt",
+                     header = T)
 } else {
-  peaks = read.table("/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/CPMs_atac-seq_10CPM_trim.txt")
+  peaks = read.table("/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/2018-07-09annotated_peaks_at_promoters_over10CPMs.txt",
+                     header = T)
 }
-
-# getting location info for peaks
-peaks$chr = dge$genes[which(rownames(dge$counts) %in% rownames(peaks)),"Chr"]
-peaks$start = dge$genes[which(rownames(dge$counts) %in% rownames(peaks)),"Start"]
-peaks$end = dge$genes[which(rownames(dge$counts) %in% rownames(peaks)),"End"]
-
-# make into GRanges
-peaks.gr = makeGRangesFromDataFrame(peaks,keep.extra.columns = T)
-
-# annotate by genomic information
-# rangedpeak = RangedData(
-#   IRanges(start = peaks$start, end = peaks$end),
-#   # passing peak tables as ranged data
-#   names = rownames(peaks),
-#   space = peaks$chr
-# )
-# annotatedPeak = annotatePeakInBatch(rangedpeak, AnnotationData=TSS.human.GRCh37) # annotate with hg19. Displays distance to nearest TSS for EVERY PEAK (default: output=nearestLocation)
-annotatedPeak = annotatePeakInBatch(peaks.gr, AnnotationData = TSS.human.GRCh37, output = "nearestBiDirectionalPromoters")
-annotatedPeak = annotatePeakInBatch(peaks.gr, AnnotationData = TSS.human.GRCh37, output = "nearestLocation")
-
-PR <- promoters(txdb, upstream = 2000, downstream = 500)
-PRallPeaks = subsetByOverlaps(peaks.gr, PR) # promoter
-
-
-allPeaksAnnotated 
-
 
 QC_and_reshaping = function() {
   
-  plot_long = cpm[match(list, rownames(cpm)), ]
-  plot_long$Name = rownames(plot_long)
+  plot_long = peaks[match(gene, peaks$external_gene_name), ]
   plot_long = na.omit(plot_long)              # remove NAs, in case there was not a match for a gene
   
-  gene_number = nrow(plot_long)   # how many genes to plot
+  gene_number = nrow(plot_long)   
   
   # melt data for ggplot2
   
-  long = melt(plot_long, measure.vars = c(1:(ncol(plot_long) - 1)))
+  long = melt(plot_long, measure.vars = c(9:32))
   head(long)
   
   # rename stages and samples
@@ -94,7 +66,7 @@ QC_and_reshaping = function() {
   long$Sample = rep(samples, each = gene_number)
   long$stage <- factor(long$stage, levels = stage_2)
   long$Sample = as.factor(long$Sample)
-  long$Name = factor(long$Name, levels = list)
+  long$peak = factor(long$peak, levels = unique(long$peak))
   head(long)
   return(long)
   
@@ -109,6 +81,7 @@ QC_and_reshaping = function() {
 if (output_type == "multiple_png" | output_type == "multiple_tiff") {
   ################ 1st part as QC script
   long = QC_and_reshaping()
+
   ###################### plot ########################
   
   p <-
@@ -146,13 +119,13 @@ if (output_type == "multiple_png" | output_type == "multiple_tiff") {
       strip.text = element_text(size = 16, face = "bold.italic")
     ) +  # strip controls subfigure titles
     
-    facet_wrap( ~ Name, scales = "free", ncol = ncol)
+    facet_wrap( ~ peak, scales = "free", ncol = ncol)
   
   if (output_type == "multiple_png") {
     png(
       paste(
         output_directory,
-        output_name,"_ATAC.png",,
+        output_name,"_ATAC_peaks_at_promoter.png",
         sep = ""
       ),
       type = "cairo",
@@ -171,7 +144,7 @@ if (output_type == "multiple_png" | output_type == "multiple_tiff") {
     tiff(
       paste(
         output_directory,
-        output_name,"_ATAC.tiff",
+        output_name,"_ATAC_peaks_at_promoter.tiff",
         sep = ""
       ),
       type = "cairo",
@@ -187,204 +160,4 @@ if (output_type == "multiple_png" | output_type == "multiple_tiff") {
     print(p)
     dev.off()
   }
-} 
-
-# 
-# 
-# else{
-#   if (output_type == "pdf") {
-#     long = QC_and_reshaping()  # reshape for plotting
-#     head(long)
-#     
-#     #create plots first
-#     plot_list = list()
-#     
-#     for (i in unique(long$GeneName))
-#     {
-#       long2 = long[long$GeneName == i, ] # subset each gene
-#       p <-
-#         ggplot(data = long2, aes(x = stage, y = value, group = group)) +
-#         ggtitle(unique(long2$GeneName)) +
-#         xlab ("Differentiation stages") +
-#         ylab ("Expression [TPM]") +
-#         expand_limits(y = 0) +
-#         geom_hline(
-#           yintercept = 0,
-#           linetype = "dashed",
-#           size = 1,
-#           col = "#DCDCDC"
-#         ) +
-#         geom_line(aes(linetype = genotype, col = crispr), size = 1) +
-#         scale_colour_manual(values = pal) +  # pallete
-#         geom_point(size = 3, aes(shape = genotype, col = crispr)) +
-#         #scale_colour_manual(values="#000000") +  # for black and white, otherwise map lines and point colours to samples
-#         theme_bw() +
-#         theme(
-#           panel.grid.minor = element_blank(),
-#           panel.grid.major = element_blank(),
-#           panel.border = element_rect(size = 2),
-#           axis.text = element_text(size = 12, face = "bold"),
-#           axis.title = element_text(size = 14, face = "bold"),
-#           plot.title = element_text(size = 16, face = "bold.italic"),
-#           legend.text = element_text(size = 11, face = "bold"),
-#           legend.key.height = unit(1, "cm"),
-#           legend.title = element_text(size = 13, face = "bold")
-#         )
-#       plot_list[[i]] = p
-#       print(i)
-#     }
-#     # create progress bar
-#     library(tcltk)
-#     total = length(unique(long$GeneName))
-#     pb <- tkProgressBar(
-#       title = "progress bar",
-#       min = 0,
-#       max = total,
-#       width = 300
-#     )
-#     
-#     
-#     # I have to open pdf connection before looping so that it saves one gene on each page
-#     somePDFPath = paste(output_directory,
-#                         output_name,"_CRISPR_RREB1",
-#                         ".pdf",
-#                         sep = "")
-#     pdf(file = somePDFPath)
-#     j = 1
-#     for (i in unique(long$GeneName)) {
-#       print(plot_list[[i]])
-#       Sys.sleep(0.1)
-#       setTkProgressBar(pb, j, label = paste(round(j / total * 100, 0),
-#                                             "% done"))
-#       j = j + 1
-#     }
-#     close(pb)
-#     dev.off()
-#     
-#   } else{
-#     for (genes in genes) {
-#       # individually gene by gene
-#       
-#       long = QC_and_reshaping()  # reshape for plotting
-#       head(long)
-#       p <-
-#         ggplot(data = long, aes(x = stage, y = value, group = group)) +
-#         ggtitle(unique(long$GeneName)) +
-#         xlab ("Differentiation stages") +
-#         ylab ("Expression [TPM]") +
-#         expand_limits(y = 0) +
-#         geom_hline(
-#           yintercept = 0,
-#           linetype = "dashed",
-#           size = 1,
-#           col = "#DCDCDC"
-#         ) +
-#         geom_line(aes(linetype = genotype, col = crispr), size = 1) +
-#         scale_colour_manual(values = pal) +  # pallete
-#         geom_point(size = 3, aes(shape = genotype, col = crispr)) +
-#         #scale_colour_manual(values="#000000") +  # for black and white, otherwise map lines and point colours to samples
-#         theme_bw() +
-#         theme(
-#           panel.grid.minor = element_blank(),
-#           panel.grid.major = element_blank(),
-#           panel.border = element_rect(size = 2),
-#           axis.text = element_text(size = 12, face = "bold"),
-#           axis.title = element_text(size = 14, face = "bold"),
-#           plot.title = element_text(size = 16, face = "bold.italic"),
-#           legend.text = element_text(size = 11, face = "bold"),
-#           legend.key.height = unit(1, "cm"),
-#           
-#           legend.title = element_text(size = 13, face = "bold")
-#         )
-#       
-#       if (output_type == "png") {
-#         png(
-#           paste(
-#             output_directory,
-#             output_name,"_CRISPR_RREB1",
-#             ".png",
-#             sep = ""
-#           ),
-#           type = "cairo",
-#           width = 8,
-#           height = 5,
-#           units = "in",
-#           res = 300,
-#           pointsize = 12
-#         )
-#         print(p)
-#         dev.off()
-#         
-#       }
-#       if (output_type == "tiff") {
-#         tiff(
-#           paste(
-#             output_directory,
-#             output_name,"_CRISPR_RREB1",
-#             ".tiff",
-#             sep = ""
-#           ),
-#           type = "cairo",
-#           compression = "lzw",
-#           antialias = "default",
-#           width = 8,
-#           height = 5,
-#           units = "in",
-#           res = 1000,
-#           pointsize = 13
-#         )
-#         print(p)
-#         dev.off()
-#       }
-#     }
-#   }
-#   
-# for (n in unique(long$Name)) {
-#   long2 = long[which(long$Name == n), ]
-#   diaPalette <-
-#     c("#C15858", "#6DA567", "#7883BA")  # Diabetologia palette
-#   p <- ggplot(data = long2, aes(x = stage, y = value, group = Sample)) +
-#     ggtitle(unique(long2$Name)) +
-#     xlab ("Differentiation stages") +
-#     ylab ("Accessibility counts [CPM]") +
-#     expand_limits(y = 0) +
-#     geom_hline(
-#       yintercept = 0,
-#       linetype = "dashed",
-#       size = 1,
-#       col = "#DCDCDC"
-#     ) +
-#     geom_line(aes(linetype = Sample, col = Sample), size = 1) +
-#     scale_colour_manual(values = diaPalette) +  # diabetologia pallete
-#     geom_point(size = 3, aes(shape = Sample, col = Sample)) +
-#     #scale_colour_manual(values="#000000") +  # for black and white, otherwise map lines and point colours to samples
-#     theme_bw() +
-#     theme(
-#       panel.grid.minor = element_blank(),
-#       panel.grid.major = element_blank(),
-#       panel.border = element_rect(size = 2),
-#       axis.text = element_text(size = 12, face = "bold"),
-#       axis.title = element_text(size = 14, face = "bold"),
-#       plot.title = element_text(size = 16, face = "bold.italic"),
-#       legend.text = element_text(size = 11, face = "bold"),
-#       legend.title = element_text(size = 13, face = "bold")
-#     )
-#   
-#   png(
-#     paste(
-#       "/Users/Marta/Documents/WTCHG/DPhil/Plots/",
-#       n,
-#       "_ATAC.png",
-#       sep = ""
-#     ),
-#     type = "cairo",
-#     width = 8,
-#     height = 5,
-#     units = "in",
-#     res = 300,
-#     pointsize = 12
-#   )
-#   print(p)
-#   dev.off()
-#   
-# }
+}
