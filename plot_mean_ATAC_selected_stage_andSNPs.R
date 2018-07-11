@@ -26,11 +26,11 @@ currentDate <- Sys.Date() # to save date in name of output files
 
 ############### variable ##########
 #region <- c(15,53744228,54075228)  # Chr, position start, position finish
-region <- c(3,181427200,181434735)  # Chr, position start, position finish
-highlight = c(181427200,181428200)
+region <- c(15,52746855,54746855)  # Chr, position start, position finish
+#highlight = c(181427200,181428200)
 top_snp_file = read.table("/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/top_credset_SNPs_in_peaks_PPA.txt")
 top_snp_file = unique(top_snp_file)
-stage = "iPSC"
+stage = "PF"
 
 ############ get regions
 # for (t in top_snp_file$V1) {
@@ -311,45 +311,45 @@ prepareChromHMM = function(){
                                                          c("seagreen2" ,"mediumblue","steelblue3","seagreen4","springgreen3","red4",
                                                            "midnightblue","magenta3","olivedrab4","purple3","khaki1","plum2","yellow2",
                                                            "lightgoldenrod2")))
+# 
+#     # change colors
+#     values(cHMM_subset[cHMM_subset$rgb == "51,255,153","rgb"]) = factor("seagreen2")
+#     values(cHMM_subset[cHMM_subset$rgb == "0,0,255","rgb"]) = factor("mediumblue" )
+#     values(cHMM_subset[cHMM_subset$rgb == "0,153,204","rgb"]) = factor("steelblue3")
+#     values(cHMM_subset[cHMM_subset$rgb == "0,102,0","rgb"]) = factor("seagreen4" )
+#     values(cHMM_subset[cHMM_subset$rgb == "0,204,51","rgb"]) = factor("springgreen3" )
+#     values(cHMM_subset[cHMM_subset$rgb == "204,0,51","rgb"]) = factor("red4")
+# 
+#     values(cHMM_subset[cHMM_subset$rgb == "0,0,51","rgb"]) = factor("midnightblue")
+#     values(cHMM_subset[cHMM_subset$rgb == "255,0,204","rgb"]) = factor("magenta3" )
+#     values(cHMM_subset[cHMM_subset$rgb == "102,153,51","rgb"]) = factor("olivedrab4")
+#     values(cHMM_subset[cHMM_subset$rgb == "102,51,153","rgb"]) = factor("purple3" )
+#     values(cHMM_subset[cHMM_subset$rgb == "255,255,204","rgb"]) = factor("khaki1")
+#     values(cHMM_subset[cHMM_subset$rgb == "204,153,255","rgb"]) = factor("plum2")
+#     values(cHMM_subset[cHMM_subset$rgb == "255,255,0","rgb"]) = factor("yellow2" )
+#     values(cHMM_subset[cHMM_subset$rgb == "204,204,102","rgb"]) = factor("lightgoldenrod2")
+
+
+    cHMM_subset = as.data.frame(cHMM_subset)
+    cHMM_subset$rgb = as.character(cHMM_subset$rgb)
 
     # change colors
-    values(cHMM_subset[cHMM_subset$rgb == "51,255,153","rgb"]) = factor("seagreen2")
-    values(cHMM_subset[cHMM_subset$rgb == "0,0,255","rgb"]) = factor("mediumblue" )
-    values(cHMM_subset[cHMM_subset$rgb == "0,153,204","rgb"]) = factor("steelblue3")
-    values(cHMM_subset[cHMM_subset$rgb == "0,102,0","rgb"]) = factor("seagreen4" )
-    values(cHMM_subset[cHMM_subset$rgb == "0,204,51","rgb"]) = factor("springgreen3" )
-    values(cHMM_subset[cHMM_subset$rgb == "204,0,51","rgb"]) = factor("red4")
+   cHMM_subset[cHMM_subset$rgb == "51,255,153","rgb"] =  "seagreen2"
+     cHMM_subset[cHMM_subset$rgb == "0,0,255","rgb"] =  "mediumblue" 
+     cHMM_subset[cHMM_subset$rgb == "0,153,204","rgb"] =  "steelblue3"
+     cHMM_subset[cHMM_subset$rgb == "0,102,0","rgb"] =  "seagreen4" 
+     cHMM_subset[cHMM_subset$rgb == "0,204,51","rgb"] =  "springgreen3" 
+     cHMM_subset[cHMM_subset$rgb == "204,0,51","rgb"] =  "red4"
 
-    values(cHMM_subset[cHMM_subset$rgb == "0,0,51","rgb"]) = factor("midnightblue")
-    values(cHMM_subset[cHMM_subset$rgb == "255,0,204","rgb"]) = factor("magenta3" )
-    values(cHMM_subset[cHMM_subset$rgb == "102,153,51","rgb"]) = factor("olivedrab4")
-    values(cHMM_subset[cHMM_subset$rgb == "102,51,153","rgb"]) = factor("purple3" )
-    values(cHMM_subset[cHMM_subset$rgb == "255,255,204","rgb"]) = factor("khaki1")
-    values(cHMM_subset[cHMM_subset$rgb == "204,153,255","rgb"]) = factor("plum2")
-    values(cHMM_subset[cHMM_subset$rgb == "255,255,0","rgb"]) = factor("yellow2" )
-    values(cHMM_subset[cHMM_subset$rgb == "204,204,102","rgb"]) = factor("lightgoldenrod2")
-  #   
-  #   
-  #   cHMM_subset = as.data.frame(cHMM_subset)
-  #   cHMM_subset$rgb = as.character(cHMM_subset$rgb)
-  #   
-  #   # change colors
-  #   cHMM_subset[cHMM_subset$rgb == "51,255,153"] =  "seagreen2") 
-  #   values(cHMM_subset[cHMM_subset$rgb == "0,0,255"]) =  "mediumblue" )
-  #   values(cHMM_subset[cHMM_subset$rgb == "0,153,204"]) =  "steelblue3") 
-  #   values(cHMM_subset[cHMM_subset$rgb == "0,102,0"]) =  "seagreen4" )
-  #   values(cHMM_subset[cHMM_subset$rgb == "0,204,51"]) =  "springgreen3" )
-  # cHMM_subset[cHMM_subset$rgb == "204,0,51",] =  "red4"
-  #   
-  #   values(cHMM_subset[cHMM_subset$rgb == "0,0,51","rgb"]) =  "midnightblue")
-  #   values(cHMM_subset[cHMM_subset$rgb == "255,0,204"]) =  "magenta3" )
-  #   values(cHMM_subset[cHMM_subset$rgb == "102,153,51"]) =  "olivedrab4") 
-  #   values(cHMM_subset[cHMM_subset$rgb == "102,51,153"]) =  "purple3" )
-  #   values(cHMM_subset[cHMM_subset$rgb == "255,255,204"]) =  "khaki1") 
-  #   values(cHMM_subset[cHMM_subset$rgb == "204,153,255"]) =  "plum2")
-  #   values(cHMM_subset[cHMM_subset$rgb == "255,255,0"]) =  "yellow2" )
-  #   values(cHMM_subset[cHMM_subset$rgb == "204,204,102"]) =  "lightgoldenrod2")
-    
+     cHMM_subset[cHMM_subset$rgb == "0,0,51","rgb"] =  "midnightblue"
+     cHMM_subset[cHMM_subset$rgb == "255,0,204","rgb"] =  "magenta3" 
+     cHMM_subset[cHMM_subset$rgb == "102,153,51","rgb"] =  "olivedrab4"
+     cHMM_subset[cHMM_subset$rgb == "102,51,153","rgb"] =  "purple3" 
+     cHMM_subset[cHMM_subset$rgb == "255,255,204","rgb"] =  "khaki1"
+     cHMM_subset[cHMM_subset$rgb == "204,153,255","rgb"] =  "plum2"
+     cHMM_subset[cHMM_subset$rgb == "255,255,0","rgb"] =  "yellow2" 
+     cHMM_subset[cHMM_subset$rgb == "204,204,102","rgb"] =  "lightgoldenrod2"
+
   return(cHMM_subset)
 }
 
@@ -404,14 +404,14 @@ fontcolor.feature = "darkblue")
 
 }
 ############ highlight specific region #################
-
-if (stage %in% c("DE","GT","PF","PE")) {
-  ht <- HighlightTrack(trackList = list(ATACtrack, txTr, credsetTrack, cHMMTrack), start = highlight[1], end = highlight[2],
-                     chromosome = region[1])
-} else{
-  ht <- HighlightTrack(trackList = list(ATACtrack, txTr, credsetTrack), start = highlight[1], end = highlight[2],
-                       chromosome = region[1])
-}
+# 
+# if (stage %in% c("DE","GT","PF","PE")) {
+#   ht <- HighlightTrack(trackList = list(ATACtrack, txTr, credsetTrack, cHMMTrack), start = highlight[1], end = highlight[2],
+#                      chromosome = region[1])
+# } else{
+#   ht <- HighlightTrack(trackList = list(ATACtrack, txTr, credsetTrack), start = highlight[1], end = highlight[2],
+#                        chromosome = region[1])
+# }
 
 
 tiff(
@@ -428,7 +428,12 @@ tiff(
   pointsize = 12,
   compression = "none"
 )
-plotTracks(list(ht, gtrack),
+# plotTracks(list(ht, gtrack),
+#            from = region[2] ,
+#            to = region[3] ,
+#            name = "")
+
+plotTracks(list(ATACtrack, txTr, credsetTrack, cHMMTrack, gtrack),
            from = region[2] ,
            to = region[3] ,
            name = "")
