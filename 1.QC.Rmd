@@ -245,7 +245,7 @@ Save dge object after trimming:
 
 ```{r final trim, warning=FALSE}
 CPM = 10
-# 
+
 # # 1st trim:
 # keep <-
 #   rowSums(cpm(dge, normalized.lib.sizes = TRUE) > CPM) >= 3   # getting peaks with at least n cpm in at least one stage (3 rep per stage).
