@@ -17,8 +17,10 @@ library("WGCNA")
 allowWGCNAThreads()
 
 # directories
-input = "../data/"
-output = "../results/"
+# input = "../data/"
+# output = "../results/"
+input = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/"
+output = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/WGCNA/10CPM_P12_S120_deepSplit2_signedHybrid_noOutliers/"
 
 ## load data
 load(file = paste(input, "dge_atac-seq_10CPM_trim.xz", sep = ""),
@@ -95,6 +97,8 @@ write.table(
 #### blind=FALSE should be used for transforming data for downstream analysis, where ###
 #### the full use of the design information should be made							 ###
 
+# Fix this to do the filtering after the transformation?
+
 vsd_b <- varianceStabilizingTransformation(dds, blind = F)
 vstMat_b = assay(vsd)
 write.table(
@@ -114,7 +118,7 @@ dev.off()
 
 
 ##################### run WGCNA  #####################
-if (!file.exists("net.xz")) {
+#if (!file.exists("net.xz")) {
   degData = t(vstMat)
   gsg = goodSamplesGenes(degData, verbose = 3)
   
@@ -186,6 +190,7 @@ if (!file.exists("net.xz")) {
     numericLabels = TRUE,
     pamStage = T,
     pamRespectsDendro = T,
+    saveTOMs = T,
     loadTOM = T,
     verbose = 3
   )
@@ -319,7 +324,60 @@ if (!file.exists("net.xz")) {
     print(p)
   }
   dev.off()
-}
+  
+  tiff(
+    paste(
+      output,
+      "module.ribbon_plots_all.tiff",
+      sep = ""
+    ),
+    type = "cairo",
+    compression = "lzw",
+    antialias = "default",
+    width = 14,
+    height = 18,
+    units = "in",
+    res = 600,
+    pointsize = 13
+  )
+  
+
+    for (j in 1:dim(datME)[2]) {
+    stages = levels(design$stage)
+    min = rep(0, length(stages))
+    max = rep(0, length(stages))
+    mean = rep(0, length(stages))
+    for (i in 1:length(stages)) {
+      min[i] = min(datME[which(design$stage == stages[i]), j])
+      max[i] = max(datME[which(design$stage == stages[i]), j])
+      mean[i] = mean(datME[which(design$stage == stages[i]), j])
+    }
+    plot_data = data.frame(
+      stages = c(1:length(stages)),
+      min = min,
+      max = max,
+      mean = mean
+    )
+    
+    p = ggplot(plot_data, aes(stages, mean)) + geom_ribbon(aes(ymin = min, ymax =
+                                                                 max),
+                                                           colour = "lightgrey",
+                                                           fill = "lightgrey") + geom_line(color = "steelblue4", lwd =
+                                                                                             1) + theme_bw() + scale_x_continuous(breaks = c(1:8)) + ylab("module eigengene") +
+      ggtitle(colnames(datME)[j])
+    
+    p = ggplot(plot_data, aes(stages, mean)) + geom_ribbon(aes(ymin = min, ymax =
+                                                                 max),
+                                                           colour = "lightgrey",
+                                                           fill = "lightgrey") + geom_line(color = "steelblue4", lwd =
+                                                                                             1) + theme_bw() + scale_x_continuous(breaks = c(1:8), labels = stages) +
+      ylab("module eigengene") + ggtitle(colnames(datME)[j]) + 
+      facet_wrap( ~ colnames(datME), scales = "free", ncol = ncol)
+    
+    
+    print(p)
+  dev.off()
+#}
 
 if (file.exists("net.xz")) {
   vstMat = read.table(paste(output, "vstMat.txt", sep = ""))

@@ -18,38 +18,39 @@ currentDate <- Sys.Date() # to save date in name of output files
 
 counts <-
 read.table(
-file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/peak_calling/IDR_peaks_from_bam_bds_pipeline/conservative_set/counts_all_samples_peaks_narrowpeaks_conservative_set_highQualityBams.txt",
+file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/Re-processed_Aug2018/counts_all_samples_peaks_conservative_normalQuality.txt",
 header = T,
 check.names = F,
 skip = 1
 ) # file with feature counts & info of start and end of peaks (all peaks present in at least one sample as detected by MACS2)
 
 
-colnames(counts)[7:ncol(counts)] = paste(rep(c("A", "B", "C", "D"), each =
-6),
-rep(as.character(c(1:6)), 4),
-sep = "")  # rename columns for samples and stages
+# colnames(counts)[7:ncol(counts)] = paste(rep(c("A", "B", "C", "D"), each =
+# 6),
+# rep(as.character(c(1:6)), 4),
+# sep = "")  # rename columns for samples and stages
 
 sample = factor(c("sbad2.1", "sbad3.1", "neo1.1"),
 levels = c("sbad2.1", "sbad3.1", "neo1.1"))   # data comes from three donors
 
 stage = factor(
-c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC"),
-levels = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC")
+c("iPSC", "DE", "GT", "PF", "PE", "EP", "EN", "BLC"),
+levels = c("iPSC", "DE", "GT", "PF", "PE", "EP", "EN", "BLC")
 ) # 8 stages
 
 rownames(counts) = counts[, 1]  # peaks are row names
-genes = counts[,c(1:7)] # save info for later
+genes = counts[,c(1:6)] # save info for later
 counts = counts[, c(7:ncol(counts))] # getting just the counts
 
 # get sample and stage name
-names = read.table(
-"/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/names_samples.txt",
-header = T
-)
-colnames(counts) = paste(names[match(colnames(counts), names$ATAC), "stage"],
-names[match(colnames(counts), names$ATAC), "sample"],
-sep = "-") # rename dataframe
+# names = read.table(
+# "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/names_samples.txt",
+# header = T
+# )
+# colnames(counts) = paste(names[match(colnames(counts), names$ATAC), "stage"],
+# names[match(colnames(counts), names$ATAC), "sample"],
+# sep = "-") # rename dataframe
+colnames(counts) = paste(rep(stage, each = 3), rep(sample, 8), sep = "-")
 
 # sort by stage and sample
 source("/Users/Marta/Documents/WTCHG/R scripts/sort_by_2_strings.R")
@@ -66,7 +67,7 @@ Now I will create the DGE object:
 group <- rep(stage, each = 3)    #group by stages
 dge <- DGEList(counts = counts, group = group, genes = genes) #create dge object
 
-#   save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
+   save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq.xz" , compress="xz")   # saving the dge object
 ```
 Calculate the normalization factors using TMM:
 ```{r expl normalization, include=FALSE, warning=FALSE}
@@ -303,12 +304,13 @@ dge <- dge[which(dge$genes$Chr %in% chr),, keep.lib.sizes = TRUE]
 
 dim(dge)
 
-save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz" , compress = "xz")   # saving the dge object
+save(dge, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples.xz" , compress = "xz")   # saving the dge object
 
 # save CPM table so I don't have to re-calculate CPMs on trimmed dge object (and therefore give lower CPMs than there really are!!
 
 CPMs = CPMs[which(rownames(CPMs) %in% dge$genes$Geneid),]
-write.table(CPMs, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/CPMs_atac-seq_10CPM_trim.txt")
+CPMs = cbind(dge$genes[,2:4],CPMs)
+write.table(CPMs, file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/CPMs_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples.txt")
 
 ```
 Saved dge object has `r nrow(dge$counts)` peaks.
