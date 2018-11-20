@@ -22,7 +22,7 @@ library(limma)
 library(ggbiplot)
 library(ggrepel) # provides geoms for ggplot2 to repel overlapping text labels.
 
-library(ggfortify)
+#library(ggfortify)
 library(reshape2)  # to modify dataframes for ggplot2
 library(knitr)   #for tables in rmd
 library(pander)  #more tables
@@ -33,8 +33,8 @@ sample = factor(c("sbad2.1", "sbad3.1", "neo1.1"),
 levels = c("sbad2.1", "sbad3.1", "neo1.1"))   # data comes from three donors
 
 stage = factor(
-c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC"),
-levels = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC")
+c("iPSC", "DE", "GT", "PF", "PE", "EP", "EN", "BLC"),
+levels = c("iPSC", "DE", "GT", "PF", "PE", "EP", "EN", "BLC")
 ) # 8 stages
 
 
@@ -44,7 +44,7 @@ levels = c("iPSC", "DE", "PGT", "PFG", "PE", "EP", "EN", "BLC")
 After checking that everything looks OK and selecting the right normalization and CPM cutoff, we'll do the differential  analysis. This is going to be a "peak" differential analysis. It highlights peaks with counts that are more different per stage to all other stages. This is different to a contrast that would compare each stage to iPSC, for example. To do the second analysis one needs to change only the design matrix. For more info on how to do contrasts, see scripts for RNA-seq diff expression analysis. 
 
 ```{r voom and plots, warning=FALSE}
-load(file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz", verbose =
+load(file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples.xz", verbose =
        TRUE)  #loading again the dge object to do the selected QC
        
        
@@ -196,7 +196,7 @@ plot_sdc = function(x) {
   colors <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
   
   png(
-  "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distance_matrix_voom_peaks.png",
+  "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/distance_matrix_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples.png",
   type = "cairo",
   width = 7,
   height = 5,
@@ -234,12 +234,12 @@ spearman_cor = function(x){
   cormat = reorder_cormat(cormat)
   
   melted_cormat <- melt(cormat)
-  melted_cormat$X1 = factor(melted_cormat$X1,levels = paste(stages,samples,sep = "-"), ordered = T)
-  melted_cormat$X2 = factor(melted_cormat$X2,levels = paste(stages,samples,sep = "-"), ordered = T)
+  melted_cormat$Var1 = factor(melted_cormat$Var1,levels = paste(stages,samples,sep = "-"), ordered = T)
+  melted_cormat$Var2 = factor(melted_cormat$Var2,levels = paste(stages,samples,sep = "-"), ordered = T)
 
   
   
-  ggheatmap <- ggplot(melted_cormat, aes(X1, X2, fill = value)) +
+  ggheatmap <- ggplot(melted_cormat, aes(Var1, Var2, fill = value)) +
     geom_tile(color = "white") +
     scale_fill_gradientn(
     limit = c(0.40, 1),
@@ -248,8 +248,8 @@ spearman_cor = function(x){
     space = "Lab",
     name = "Spearman\nCorrelation"
     ) +
-    scale_x_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","PGT-sbad3.1", "PFG-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
-    scale_y_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","PGT-sbad3.1", "PFG-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
+    scale_x_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","GT-sbad3.1", "PF-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
+    scale_y_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","GT-sbad3.1", "PF-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
     theme_minimal() + # minimal theme
     theme(
     axis.title = element_blank(),
@@ -266,7 +266,7 @@ spearman_cor = function(x){
   
   
   png(
-  "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/Spearman_cor.png",
+  "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/Spearman_cor_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples.png",
   type = "cairo",
   width = 7,
   height = 5,
@@ -295,10 +295,10 @@ pearson_cor = function(x){
   #cormat = reorder_cormat(cormat)
   
   melted_cormat <- melt(cormat)
-  melted_cormat$X1 = factor(melted_cormat$X1,levels = paste(stages,samples,sep = "-"), ordered = T)
-  melted_cormat$X2 = factor(melted_cormat$X2,levels = paste(stages,samples,sep = "-"), ordered = T)
+  melted_cormat$Var1 = factor(melted_cormat$Var1,levels = paste(stages,samples,sep = "-"), ordered = T)
+  melted_cormat$Var2 = factor(melted_cormat$Var2,levels = paste(stages,samples,sep = "-"), ordered = T)
 
-  ggheatmap <- ggplot(melted_cormat, aes(X1, X2, fill = value)) +
+  ggheatmap <- ggplot(melted_cormat, aes(Var1, Var2, fill = value)) +
     geom_tile(color = "white") +
     scale_fill_gradientn(
     limit = c(0.40, 1),
@@ -307,8 +307,8 @@ pearson_cor = function(x){
     space = "Lab",
     name = "Pearson\nCorrelation"
     ) +
-    scale_x_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","PGT-sbad3.1", "PFG-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
-    scale_y_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","PGT-sbad3.1", "PFG-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
+    scale_x_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","GT-sbad3.1", "PF-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
+    scale_y_discrete(breaks = c("iPSC-sbad3.1", "DE-sbad3.1","GT-sbad3.1", "PF-sbad3.1", "PE-sbad3.1",  "EP-sbad3.1", "EN-sbad3.1",  "BLC-sbad3.1"), labels = c("iPSC","DE", "GT", "PF", "PE" ,"EP","EN", "BLC")) +
     theme_minimal() + # minimal theme
     theme(
     axis.title = element_blank(),
@@ -324,7 +324,7 @@ pearson_cor = function(x){
     coord_fixed()
   
   png(
-  "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/Pearson_cor.png",
+  "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/Pearson_cor_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples.png",
   type = "cairo",
   width = 7,
   height = 5,
@@ -368,9 +368,10 @@ diaPalette <-
       "#96165A"
     )  # Diabetologia pallete
 p <- ggplot(pcs, aes(PC1, PC2, colour = stage, shape = samples)) +
-geom_point(size = 3) + xlab(paste0("PC1:" , percentVar[1], "% variance")) +
-  scale_color_manual(values = diaPalette) +
-ylab(paste0("PC2: ", percentVar[2], "% variance"))
+geom_point(size = 4) + xlab(paste0("PC1:" , percentVar[1], "% variance")) +
+  scale_color_manual(values = diaPalette, name  ="Stage") +
+ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+      scale_shape_discrete(name  ="Sample")
 p <-
 p + theme(
 panel.grid.major = element_blank(),
@@ -380,29 +381,29 @@ panel.border = element_rect(fill = NA, colour = "black"),
 legend.key = element_blank(),
 # legend.position = c(0.5,0.5),
 axis.title.y = element_text(
-face = "bold",
 angle = 90,
-size = 12,
+size = 18,
 vjust = 0.2
 ),
 axis.title.x = element_text(
-face = "bold",
-size = 12,
+size = 18,
 vjust = 0
 ),
 axis.text.x = element_text(
-face = "bold",
+
 colour = "black",
 angle = 90,
-size = 12,
+size = 16,
 vjust = 0.2,
 hjust = 1
 ),
-axis.text.y = element_text(face = "bold", colour = "black"),
+
+axis.text.y = element_text(colour = "black", size = 16),
+legend.text = element_text(colour = "black", size = 16),
+legend.title = element_text(colour = "black", size = 16),
 axis.ticks = element_line(colour = "black"),
 axis.line = element_line(colour = "black")
 )
-# ggsave("/Users/Marta/Documents/WTCHG/DPhil/Plots/conservative_counts/Diff_v2_PCA.tiff",p,compression="lzw")
 return(p)
 }
 
@@ -411,7 +412,7 @@ p
 
 ggsave(
 paste(
-"/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_voom_atac-seq_",
+"/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/PCA_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples_",
 currentDate,
 ".jpg",
 sep = ""
@@ -420,10 +421,9 @@ p,
 width = 6,
 height = 5,
 units = "in",
-dpi = 300
+dpi = 350
 )
 
-```
 
 ```{r Diff atac, warning=FALSE}
 ###DEA per se
@@ -542,23 +542,23 @@ rownames(sig_DE_stage) = NULL # take out row names
 sig_DE_stage = sig_DE_stage[c(3, 1, 2)]
 DE_stages [["DE"]] <- sig_DE_stage
 
-sig_PGT_stage <-
-combined_df[combined_df$stagesPGT.adj.P.Val < 0.01 &
+sig_GT_stage <-
+combined_df[combined_df$stagesGT.adj.P.Val < 0.01 &
 maxVals == 3, c(5, 6)]
-sig_PGT_stage = sig_PGT_stage[order(sig_PGT_stage[2]), ]
-sig_PGT_stage$peak_names = rownames(sig_PGT_stage)
-rownames(sig_PGT_stage) = NULL # take out row names
-sig_PGT_stage = sig_PGT_stage[c(3, 1, 2)]
-DE_stages [["PGT"]] <- sig_PGT_stage
+sig_GT_stage = sig_GT_stage[order(sig_GT_stage[2]), ]
+sig_GT_stage$peak_names = rownames(sig_GT_stage)
+rownames(sig_GT_stage) = NULL # take out row names
+sig_GT_stage = sig_GT_stage[c(3, 1, 2)]
+DE_stages [["GT"]] <- sig_GT_stage
 
-sig_PFG_stage <-
-combined_df[combined_df$stagesPFG.adj.P.Val < 0.01 &
+sig_PF_stage <-
+combined_df[combined_df$stagesPF.adj.P.Val < 0.01 &
 maxVals == 4, c(7, 8)]
-sig_PFG_stage = sig_PFG_stage[order(sig_PFG_stage[2]), ]
-sig_PFG_stage$peak_names = rownames(sig_PFG_stage)
-rownames(sig_PFG_stage) = NULL # take out row names
-sig_PFG_stage = sig_PFG_stage[c(3, 1, 2)]
-DE_stages [["PFG"]] <- sig_PFG_stage
+sig_PF_stage = sig_PF_stage[order(sig_PF_stage[2]), ]
+sig_PF_stage$peak_names = rownames(sig_PF_stage)
+rownames(sig_PF_stage) = NULL # take out row names
+sig_PF_stage = sig_PF_stage[c(3, 1, 2)]
+DE_stages [["PF"]] <- sig_PF_stage
 
 sig_PE_stage <-
 combined_df[combined_df$stagesPE.adj.P.Val < 0.01 &
@@ -617,7 +617,7 @@ file = paste(
 currentDate,
 "_sig_maxvals_",
 i,
-"_diff_peak_analysis.csv",
+"_diff_peak_analysis_atac-seq_10CPM_trim_conservativeCounts_allQualitySamples.csv",
 sep = ""
 )
 )

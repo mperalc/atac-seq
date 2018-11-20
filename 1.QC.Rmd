@@ -244,6 +244,7 @@ With this plot one should have enough information to chose the right CPM cutoff.
 Save dge object after trimming:
 
 ```{r final trim, warning=FALSE}
+# This CPM cut-off might be too stringent
 CPM = 10
 
 # # 1st trim:
