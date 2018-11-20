@@ -2,29 +2,17 @@
 # correlated peaks 1MB either side of peaks overlapping credible sets
 
 library(GenomicRanges)
-library(WGCNA)
 library(ggplot2)
 library(gridExtra)
 library(cowplot)
 library(gridGraphics)
 library(dplyr)
 source("/Users/Marta/Documents/WTCHG/R scripts/atac-seq/corWGCNAmodules.R")
+#source("/Users/Marta/Documents/WTCHG/R scripts/atac-seq/corAndPvalue.R") # what happened???
 
 options(stringsAsFactors = FALSE)
 
-# 1. correlate ATAC and RNA WGCNA modules
-
 ATAC_dir = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/WGCNA/10CPM_P12_S120_deepSplit2_signedHybrid_noOutliers/"
-RNA_dir = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/Diff_v2/WGCNA_P12/"
-
-# Read in module files for RNA and ATAC-seq
-ATAC = read.table(file = paste(ATAC_dir, "WGCNA.gene2module.30M.txt", sep =
-                                 ""),
-                  header = T)
-RNA = read.table(file = paste(RNA_dir, "WGCNA.gene2module.30M.txt", sep =
-                                ""),
-                 header = T)
-
 
 # read in expression/atac data
 # RNA
@@ -34,17 +22,18 @@ load(
   "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/dge_atac-seq_10CPM_trim.xz"
 )
 
-# plotting correlated modules
 setwd(ATAC_dir)
-corWGCNAmodules(modulesDataSet1 = ATAC, modulesDataSet2 = RNA, dataSet1 = dge, dataSet2 = dge_cc)
 
-# normalize expression data
-datExpr = cbind(dge_cc$genes[1:2], dge_cc$counts)
-datExpr[3:ncol(datExpr)] = cpm(datExpr[3:ncol(datExpr)])
+# calculating cpms from previous data would inflate the counts. Loading pre-calculated CPMs from whole data 
+# containing only filtered genes
 
-# Normalize ATAC data
-datATAC = cbind(dge$genes[1:2], dge$counts)
-datATAC[3:ncol(datATAC)]  = cpm(datATAC[3:ncol(datATAC)])
+# # Normalized expression data
+datExpr = read.table(file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Diff_v2/CPMs_rna-seq_1CPM_trim.txt")
+datExpr =  cbind(dge_cc$genes[1:2], datExpr)
+
+# # Normalized ATAC data
+datATAC = read.table(file = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/CPMs_atac-seq_10CPM_trim.txt")
+datATAC = cbind(dge$genes[1:2], datATAC)
 
 ############# look 500kb around every credible set ##########
 ### check loci classification from Anubha - there are some SNPs shared between loci
@@ -75,7 +64,6 @@ nrow(peaksOverSNPs)
 # allocate each peak in correct credible set
 # some will be empty, others will have peak
 # integrate peak info and credset SNPs with findOverlaps
-
 
 peaksOverSNPs.gr  = makeGRangesFromDataFrame(peaksOverSNPs)
 
@@ -118,9 +106,10 @@ for (n in names(credset)) {
 }
 rm(credset_subset, overlapPeak)
 
-# how many credsets don't have any overlapping peaks?
+# Get number of overlapping peaks. 
 lapply(peaks_per_credset, nrow)
 
+# how many credsets don't have any overlapping peaks?
 # number of credible sets w/o any peaks over their SNPs
 peaks_per_credset %>%
   lapply(nrow) %>%

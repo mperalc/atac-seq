@@ -13,7 +13,7 @@ library(ChIPpeakAnno)
 data(TSS.human.GRCh37) # load TSS info from CRCh37
 library(biomaRt)
 ################## variable #################
-gene = "KCNJ11"
+gene = "SOX4"
 output_name = gene
 output_type = "multiple_tiff"  # can be:  "multiple_png", "multiple_tiff"
 output_directory = "/Users/Marta/Documents/WTCHG/DPhil/Plots/atac-seq/peak_profiles/"

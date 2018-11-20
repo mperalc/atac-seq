@@ -26,11 +26,11 @@ currentDate <- Sys.Date() # to save date in name of output files
 
 ############### variable ##########
 #region <- c(15,53744228,54075228)  # Chr, position start, position finish
-region <- c(15,52746855,54746855)  # Chr, position start, position finish
+region <- c(20,21453433,21496433)  # Chr, position start, position finish
 #highlight = c(181427200,181428200)
 top_snp_file = read.table("/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/SNP_overlap_peaks/top_credset_SNPs_in_peaks_PPA.txt")
 top_snp_file = unique(top_snp_file)
-stage = "PF"
+stage = "PE"
 
 ############ get regions
 # for (t in top_snp_file$V1) {
