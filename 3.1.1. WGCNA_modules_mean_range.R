@@ -17,4 +17,5 @@ for (m in unique(ATAC$module)){
  module_peaknumber = as.data.frame(do.call("rbind",module_peaknumber))
  max(module_peaknumber$V1) - min(module_peaknumber$V1) # range
  median(module_peaknumber$V1)# median
+ length(unique(ATAC$module))
  
