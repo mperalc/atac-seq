@@ -1,7 +1,7 @@
 # WGCNA ATAC-seq only
 # ATAC = raw counts filytered 10 CPM
 
-Power = 12
+Power = 10
 Size = 120
 deepsplit = 2
 method = "signed hybrid"
@@ -17,10 +17,10 @@ library("WGCNA")
 allowWGCNAThreads()
 
 # directories
-# input = "../data/"
-# output = "../results/"
-input = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/"
-output = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/WGCNA/10CPM_P12_S120_deepSplit2_signedHybrid_noOutliers/"
+ input = "../data/"
+ output = "../results/"
+#input = "/Users/Marta/Documents/WTCHG/DPhil/Data/Regulation/atac-seq/session_objects/"
+#output = "/Users/Marta/Documents/WTCHG/DPhil/Data/Results/ATAC-seq/WGCNA/10CPM_P12_S120_deepSplit2_signedHybrid_noOutliers/"
 
 ## load data
 load(file = paste(input, "dge_atac-seq_10CPM_trim.xz", sep = ""),
@@ -34,12 +34,12 @@ if (remove_outliers) {
     "DE-sbad2.1",
     "DE-sbad3.1",
     "DE-neo1.1",
-    "PGT-sbad2.1",
-    "PGT-sbad3.1",
-    "PGT-neo1.1",
-    "PFG-sbad2.1",
-    "PFG-sbad3.1",
-    "PFG-neo1.1",
+    "GT-sbad2.1",
+    "GT-sbad3.1",
+    "GT-neo1.1",
+    "PF-sbad2.1",
+    "PF-sbad3.1",
+    "PF-neo1.1",
     "PE-sbad2.1",
     "PE-sbad3.1",
     "PE-neo1.1",
@@ -55,7 +55,7 @@ if (remove_outliers) {
 }
 
 dim(dge)
-#174,379     24
+#36,917    24
 
 ## renaming
 # ATAC
@@ -84,6 +84,10 @@ design$stage = factor(design$stage, levels(design$stage))
 ############ Run Vst normalization on the whole dataset (with DESeq2) ############
 
 vsd <- varianceStabilizingTransformation(dds)
+# -- note: fitType='parametric', but the dispersion trend was not well captured by the
+# function: y = a/x + b, and a local regression fit was automatically substituted.
+# specify fitType='local' or 'mean' to avoid this message next time.
+
 vstMat = assay(vsd)
 write.table(
   vstMat,
@@ -123,6 +127,7 @@ dev.off()
   gsg = goodSamplesGenes(degData, verbose = 3)
   
   gsg$allOK
+  # TRUE
   
   ### pick power
   powers = c(c(1:10), seq(from = 12, to = 20, by = 2))
@@ -174,26 +179,28 @@ dev.off()
   )
   dev.off()
   
-  # looks like power of 12 is fine
+  # looks like power of 10 is fine
   ##### run WGCNA module detection
+  # the blocks need to be in the same place where the script is run
   
   net = blockwiseModules(
     degData,
     power = Power,
-    maxBlockSize = 15500,
+   # maxBlockSize = 15500,
+    # 1 block only, takes longer but is more precise
+    maxBlockSize = 40000,
     TOMType = "signed",
     networkType = method,
     minModuleSize = Size,
-    mergeCutHeight = 0.10,
-    detectCutHeight = 0.99,
+    mergeCutHeight = 0.15,
     deepSplit = deepsplit,
     numericLabels = TRUE,
-    pamStage = T,
-    pamRespectsDendro = T,
     saveTOMs = T,
-    loadTOM = T,
+    saveTOMFileBase = paste(output, "blockwiseTOM",sep = ""),
+    #loadTOM = T,
     verbose = 3
   )
+  
   save(net,
        file = paste(output, "net.xz", sep = ""),
        compress = "xz")
@@ -201,7 +208,7 @@ dev.off()
   
   
   pdf(
-    paste(output, "WGCNA_dendrogram.30M.pdf", sep = ""),
+    paste(output, "WGCNA_dendrogram_block1.30M.pdf", sep = ""),
     width = 12,
     height = 9
   )
@@ -218,14 +225,50 @@ dev.off()
   )
   dev.off()
   
-  
-  
+  # 
+  # pdf(
+  #   paste(output, "WGCNA_dendrogram_block2.30M.pdf", sep = ""),
+  #   width = 12,
+  #   height = 9
+  # )
+  # moduleColors = labels2colors(net$colors)
+  # # Plot the dendrogram and the module colors underneath
+  # plotDendroAndColors(
+  #   net$dendrograms[[2]],
+  #   moduleColors[net$blockGenes[[2]]],
+  #   "Module colors",
+  #   dendroLabels = FALSE,
+  #   hang = 0.03,
+  #   addGuide = TRUE,
+  #   guideHang = 0.05
+  # )
+  # dev.off()
+  # 
+  # 
+  # pdf(
+  #   paste(output, "WGCNA_dendrogram_block3.30M.pdf", sep = ""),
+  #   width = 12,
+  #   height = 9
+  # )
+  # moduleColors = labels2colors(net$colors)
+  # # Plot the dendrogram and the module colors underneath
+  # plotDendroAndColors(
+  #   net$dendrograms[[3]],
+  #   moduleColors[net$blockGenes[[3]]],
+  #   "Module colors",
+  #   dendroLabels = FALSE,
+  #   hang = 0.03,
+  #   addGuide = TRUE,
+  #   guideHang = 0.05
+  # )
+  # dev.off()
+  # 
+  # 
   moduleLabels = net$colors
   moduleColors = labels2colors(net$colors)
   MEs = net$MEs
   
-  geneTree = net$dendrograms[[1]]
-  
+
   
   save(
     MEs,
@@ -235,15 +278,17 @@ dev.off()
     file = paste(output, "ATAC_only_network.RData", sep = "")
   )
   
-  lsdatME = moduleEigengenes(degData, moduleColors)$eigengenes
+  # Plotting dendrogram of eigenvectors
+  
   datME = moduleEigengenes(degData, moduleColors)$eigengenes
-  dissimME = (1 - t(WGCNA::cor(datME, method = "p"))) / 2
-  hclustdatME = hclust(as.dist(dissimME), method = "average")
+  ###### This is Agata's, but it is not used to calculate the plot below
+  #dissimME = (1 - t(WGCNA::cor(datME, method = "p"))) / 2
+  #hclustdatME = hclust(as.dist(dissimME), method = "average")
+  #########################
   
-  MEs = moduleEigengenes(degData, moduleColors)$eigengenes
-  pheno = data.frame(stage = as.numeric(design$stage))
+  #pheno = data.frame(stage = as.numeric(design$stage))
   
-  MET = orderMEs(cbind(MEs, pheno))
+  #MET = orderMEs(cbind(datME, pheno))
   pdf(
     paste(output, "WGCNA_cluster_eigenvectors.30M.pdf", sep = ""),
     width = 8,
@@ -251,15 +296,43 @@ dev.off()
   )
   par(cex = 0.9)
   plotEigengeneNetworks(
-    MET,
+    orderMEs(datME),
+    #MET,
     "",
     marDendro = c(0, 4, 1, 2),
     marHeatmap = c(3, 4, 1, 2),
     cex.lab = 0.8,
     xLabelsAngle = 90
   )
+ 
+  dev.off()
+
+  # Plot eigengenes with dissimilarity threshold line
+  # If I choose Agata's method of calculating dissimilarity I get same separation of modules 
+  # but different height
+  #dissimME = (1 - t(WGCNA::cor(datME, method = "p"))) / 2
+  #hclustdatME = hclust(as.dist(dissimME), method = "average")
+  
+  dissimME = (1 - WGCNA::cor(datME, method = "p")) # This is the dissimilarity value used in the 
+  # function plotEigengeneNetworks
+  
+  hclustdatME = hclust(as.dist(dissimME), method = "average")
+  
+  pdf(
+    paste(output, "WGCNA_cluster_eigenvectors.dissimline.pdf", sep = ""),
+    width = 8,
+    height = 12
+  )
+  par(mfrow = c(1,1))
+  plot(hclustdatME,main = "Clustering of module eigengenes",xlab = "", sub = "")
+  
+  # Plot chosen dissimilarity value
+  
+  MEDissThres = 0.07
+  abline(h = MEDissThres,col = "red")
   dev.off()
   
+  ## Plotting barplots
   
   pdf(
     paste(output, "Module_eigengenes.30M.barplots.pdf", sep = ""),
@@ -342,44 +415,44 @@ dev.off()
   )
   
 
-    for (j in 1:dim(datME)[2]) {
-    stages = levels(design$stage)
-    min = rep(0, length(stages))
-    max = rep(0, length(stages))
-    mean = rep(0, length(stages))
-    for (i in 1:length(stages)) {
-      min[i] = min(datME[which(design$stage == stages[i]), j])
-      max[i] = max(datME[which(design$stage == stages[i]), j])
-      mean[i] = mean(datME[which(design$stage == stages[i]), j])
-    }
-    plot_data = data.frame(
-      stages = c(1:length(stages)),
-      min = min,
-      max = max,
-      mean = mean
-    )
-    
-    p = ggplot(plot_data, aes(stages, mean)) + geom_ribbon(aes(ymin = min, ymax =
-                                                                 max),
-                                                           colour = "lightgrey",
-                                                           fill = "lightgrey") + geom_line(color = "steelblue4", lwd =
-                                                                                             1) + theme_bw() + scale_x_continuous(breaks = c(1:8)) + ylab("module eigengene") +
-      ggtitle(colnames(datME)[j])
-    
-    p = ggplot(plot_data, aes(stages, mean)) + geom_ribbon(aes(ymin = min, ymax =
-                                                                 max),
-                                                           colour = "lightgrey",
-                                                           fill = "lightgrey") + geom_line(color = "steelblue4", lwd =
-                                                                                             1) + theme_bw() + scale_x_continuous(breaks = c(1:8), labels = stages) +
-      ylab("module eigengene") + ggtitle(colnames(datME)[j]) + 
-      facet_wrap( ~ colnames(datME), scales = "free", ncol = ncol)
-    
-    
-    print(p)
-  dev.off()
-#}
+#     for (j in 1:dim(datME)[2]) {
+#     stages = levels(design$stage)
+#     min = rep(0, length(stages))
+#     max = rep(0, length(stages))
+#     mean = rep(0, length(stages))
+#     for (i in 1:length(stages)) {
+#       min[i] = min(datME[which(design$stage == stages[i]), j])
+#       max[i] = max(datME[which(design$stage == stages[i]), j])
+#       mean[i] = mean(datME[which(design$stage == stages[i]), j])
+#     }
+#     plot_data = data.frame(
+#       stages = c(1:length(stages)),
+#       min = min,
+#       max = max,
+#       mean = mean
+#     )
+#     
+#     p = ggplot(plot_data, aes(stages, mean)) + geom_ribbon(aes(ymin = min, ymax =
+#                                                                  max),
+#                                                            colour = "lightgrey",
+#                                                            fill = "lightgrey") + geom_line(color = "steelblue4", lwd =
+#                                                                                              1) + theme_bw() + scale_x_continuous(breaks = c(1:8)) + ylab("module eigengene") +
+#       ggtitle(colnames(datME)[j])
+#     
+#     p = ggplot(plot_data, aes(stages, mean)) + geom_ribbon(aes(ymin = min, ymax =
+#                                                                  max),
+#                                                            colour = "lightgrey",
+#                                                            fill = "lightgrey") + geom_line(color = "steelblue4", lwd =
+#                                                                                              1) + theme_bw() + scale_x_continuous(breaks = c(1:8), labels = stages) +
+#       ylab("module eigengene") + ggtitle(colnames(datME)[j]) + 
+#       facet_wrap( ~ colnames(datME), scales = "free", ncol = ncol)
+#     
+#     
+#     print(p)
+#   dev.off()
+# }
 
-if (file.exists("net.xz")) {
+if (file.exists(paste(output, "vstMat.txt", sep = ""))) {
   vstMat = read.table(paste(output, "vstMat.txt", sep = ""))
   degData = t(vstMat)
   load(paste(output, "net.xz", sep = ""))
